@@ -296,16 +296,16 @@ export async function createTransactionAction(
 
       // Check if commission record exists for this period
       const existingCommission = db.prepare(`
-        SELECT id, total_sales, collected, collected_at_sales
+        SELECT id, total_sales, collected, collected_at_sales, amount_owed
         FROM commission_records 
         WHERE store_id = ? AND period = ?
-      `).get(storeId, period) as { id: number; total_sales: number; collected: number; collected_at_sales: number | null } | undefined;
+      `).get(storeId, period) as { id: number; total_sales: number; collected: number; collected_at_sales: number | null; amount_owed: number } | undefined;
 
       if (existingCommission) {
         const newTotalSales = existingCommission.total_sales + total;
         let newAmountOwed: number;
         let newCollected = existingCommission.collected;
-        let newCollectedAtSales = existingCommission.collected_at_sales;
+        const newCollectedAtSales = existingCommission.collected_at_sales;
 
         if (existingCommission.collected === 1 && existingCommission.collected_at_sales !== null && newTotalSales > existingCommission.collected_at_sales) {
           // Admin already collected, but new sales arrived — flag as pending for the unpaid portion only
