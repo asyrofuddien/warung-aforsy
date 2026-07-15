@@ -55,7 +55,6 @@ export default function ReceiptDocument({
         background: "#FAF6EE",
         fontFamily: "'IBM Plex Mono', monospace",
         color: "#1E1B16",
-        overflow: "hidden",
         borderRadius: "var(--radius-md)",
         boxShadow: "var(--shadow-elevated)",
       }}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { generateLaporanPDF } from '@/lib/admin-laporan-pdf';
 
 interface StoreProfitSummary {
   store_id: number;
@@ -94,54 +95,19 @@ export default function AdminLaporanClient({
     { total_transactions: 0, total_revenue: 0, total_cost: 0, total_profit: 0 }
   );
 
-  const handleDownloadCsv = () => {
-    const rows: string[] = [];
-    rows.push('Nama Warung,Total Transaksi,Total Pendapatan,Total Modal,Total Keuntungan');
+  const handleDownloadPdf = () => {
+    if (filteredSummaries.length === 0) return;
 
-    if (selectedMonth === 'all') {
-      filteredSummaries.forEach((s) => {
-        rows.push([
-          s.store_name,
-          String(s.total_transactions),
-          String(s.total_revenue),
-          String(s.total_cost),
-          String(s.total_profit),
-        ].join(','));
-      });
-      rows.push('');
-      rows.push(['TOTAL', String(totals.total_transactions), String(totals.total_revenue), String(totals.total_cost), String(totals.total_profit)].join(','));
-    } else {
-      filteredMonthly.forEach((m) => {
-        rows.push([
-          `${m.store_name} (${formatMonthLabel(m.period)})`,
-          String(m.total_transactions),
-          String(m.total_revenue),
-          String(m.total_cost),
-          String(m.total_profit),
-        ].join(','));
-      });
-      const monthTotals = filteredMonthly.reduce(
-        (acc, m) => ({
-          total_transactions: acc.total_transactions + m.total_transactions,
-          total_revenue: acc.total_revenue + m.total_revenue,
-          total_cost: acc.total_cost + m.total_cost,
-          total_profit: acc.total_profit + m.total_profit,
-        }),
-        { total_transactions: 0, total_revenue: 0, total_cost: 0, total_profit: 0 }
-      );
-      rows.push('');
-      rows.push(['TOTAL', String(monthTotals.total_transactions), String(monthTotals.total_revenue), String(monthTotals.total_cost), String(monthTotals.total_profit)].join(','));
-    }
+    const selectedStoreLabels = selectedStores.length === 0
+      ? []
+      : storeNames.filter((s) => selectedStores.includes(s.id)).map((s) => s.name);
 
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `laporan-keuntungan${selectedMonth !== 'all' ? '-' + selectedMonth : ''}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    generateLaporanPDF(
+      filteredSummaries,
+      filteredMonthly,
+      selectedMonth,
+      selectedStoreLabels,
+    );
   };
 
   return (
@@ -205,11 +171,11 @@ export default function AdminLaporanClient({
         {/* Download Button */}
         <div className="mt-3">
           <button
-            onClick={handleDownloadCsv}
+            onClick={handleDownloadPdf}
             className="btn btn-secondary btn--sm"
             disabled={filteredSummaries.length === 0}
           >
-            Unduh CSV
+            Unduh PDF
           </button>
         </div>
       </div>
