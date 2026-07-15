@@ -669,7 +669,7 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
                   onClick={async () => {
                     try {
                       const el = document.getElementById('receipt-document');
-                      if (el) await downloadReceiptPDF(el, `nota-${storeName}-${receipt.transactionId}.pdf`);
+                      if (el) await downloadReceiptPDF(el, `nota-${storeName}-${receipt.transactionId}.pdf`, storeName);
                       toast.success('PDF berhasil diunduh!');
                     } catch {
                       toast.error('Gagal membuat PDF.');

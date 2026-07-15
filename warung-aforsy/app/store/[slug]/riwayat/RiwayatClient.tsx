@@ -233,7 +233,7 @@ export default function RiwayatClient({
                   onClick={async () => {
                     try {
                       const el = document.getElementById('receipt-document');
-                      if (el) await downloadReceiptPDF(el, `nota-${storeName}-${selectedTx.id}.pdf`);
+                      if (el) await downloadReceiptPDF(el, `nota-${storeName}-${selectedTx.id}.pdf`, storeName);
                       toast.success('PDF berhasil diunduh!');
                     } catch {
                       toast.error('Gagal membuat PDF.');

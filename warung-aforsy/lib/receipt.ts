@@ -21,7 +21,7 @@ export async function generateReceiptImage(element: HTMLElement): Promise<Blob> 
   });
 }
 
-export async function downloadReceiptPDF(element: HTMLElement, filename: string) {
+export async function downloadReceiptPDF(element: HTMLElement, filename: string, storeName?: string) {
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,
@@ -30,13 +30,33 @@ export async function downloadReceiptPDF(element: HTMLElement, filename: string)
   });
 
   const imgData = canvas.toDataURL("image/png", 1);
+  const pdfHeight = (canvas.height * 80) / canvas.width;
   const pdf = new jsPDF({
     orientation: "portrait",
     unit: "mm",
-    format: [80, (canvas.height * 80) / canvas.width],
+    format: [80, pdfHeight],
   });
 
-  pdf.addImage(imgData, "PNG", 0, 0, 80, (canvas.height * 80) / canvas.width);
+  pdf.addImage(imgData, "PNG", 0, 0, 80, pdfHeight);
+
+  if (storeName) {
+    const watermarkText = storeName.toUpperCase();
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(14);
+    pdf.setTextColor(200, 190, 170);
+
+    const centerX = 80 / 2;
+    const centerY = pdfHeight / 2;
+
+    pdf.saveGraphicsState();
+    pdf.setGState(pdf.GState({ opacity: 0.15 }));
+    pdf.text(watermarkText, centerX, centerY, {
+      align: "center",
+      angle: 45,
+    });
+    pdf.restoreGraphicsState();
+  }
+
   pdf.save(filename);
 }
 
