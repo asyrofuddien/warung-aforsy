@@ -166,14 +166,20 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
   const handleImportCsv = async () => {
     setIsImportingCsv(true);
     try {
-      const importRows: CsvProductRow[] = csvRows.map((r) => ({
-        name: r.name,
-        price: r.price,
-        cost_price: r.cost_price,
-        barcode: r.barcode,
-        category: r.category,
+      const validIndices = csvRows
+        .map((r, i) => (r.error ? -1 : i))
+        .filter((i) => i !== -1);
+
+      const importRows: CsvProductRow[] = validIndices.map((i) => ({
+        name: csvRows[i].name,
+        price: csvRows[i].price,
+        cost_price: csvRows[i].cost_price,
+        barcode: csvRows[i].barcode,
+        category: csvRows[i].category,
       }));
-      const result = await importCsvAction(storeId, importRows, csvActions);
+
+      const importActions = validIndices.map((i) => csvActions[i]);
+      const result = await importCsvAction(storeId, importRows, importActions);
       if (result.success) {
         toast.success(`Import selesai: ${result.imported} baru, ${result.replaced} diganti, ${result.skipped} dilewati.`);
         setIsCsvOpen(false);
@@ -1265,7 +1271,7 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
                     ) : (
                       <>
                         <CheckCircle2 size={18} />
-                        <span>Import {csvActions.filter((a) => a.action !== 'skip').length} Produk</span>
+                        <span>Import {csvActions.filter((a, i) => a.action !== 'skip' && !csvRows[i]?.error).length} Produk</span>
                       </>
                     )}
                   </button>
