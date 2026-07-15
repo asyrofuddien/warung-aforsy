@@ -1,6 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { Download, FileImage, MessageCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import ReceiptDocument from '@/components/ReceiptDocument';
+import { downloadReceiptPDF, downloadReceiptImage, shareReceiptWhatsApp } from '@/lib/receipt';
 
 interface Transaction {
   id: number;
@@ -37,10 +41,9 @@ export default function RiwayatClient({
   storeName,
 }: RiwayatClientProps) {
   const [filterCashier, setFilterCashier] = useState<string>('all');
-  const [filterDate, setFilterDate] = useState<string>(''); // YYYY-MM-DD format
+  const [filterDate, setFilterDate] = useState<string>('');
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
-  // Group transaction items by transaction ID
   const itemsByTxId = transactionItems.reduce((acc, item) => {
     if (!acc[item.transaction_id]) {
       acc[item.transaction_id] = [];
@@ -49,20 +52,16 @@ export default function RiwayatClient({
     return acc;
   }, {} as { [txId: number]: TransactionItem[] });
 
-  // Filter transactions
   const filteredTxs = transactions.filter((tx) => {
     const matchCashier = filterCashier === 'all' || tx.cashier_id.toString() === filterCashier;
-    
     let matchDate = true;
     if (filterDate) {
-      const txLocalDate = tx.timestamp.split('T')[0]; // Extract YYYY-MM-DD
+      const txLocalDate = tx.timestamp.split('T')[0];
       matchDate = txLocalDate === filterDate;
     }
-    
     return matchCashier && matchDate;
   });
 
-  // Calculate totals for the filtered list
   const totalFilteredSales = filteredTxs.reduce((acc, curr) => acc + curr.total, 0);
 
   const formatIndoDate = (isoStr: string, includeTime = true) => {
@@ -80,34 +79,12 @@ export default function RiwayatClient({
     }
   };
 
-  const getWhatsAppShareLink = (receipt: Transaction) => {
-    const items = itemsByTxId[receipt.id] || [];
-    
-    let text = `*${storeName.toUpperCase()}*\n`;
-    text += `Nota Belanja - #${receipt.id}\n`;
-    text += `Tanggal: ${formatIndoDate(receipt.timestamp)}\n`;
-    text += `Kasir: ${receipt.cashier_name}\n`;
-    text += `------------------------------------\n`;
-    
-    items.forEach((item) => {
-      text += `- ${item.quantity}x ${item.name_snapshot} @ Rp ${item.price_snapshot.toLocaleString('id-ID')} = Rp ${(item.quantity * item.price_snapshot).toLocaleString('id-ID')}\n`;
-    });
-    
-    text += `------------------------------------\n`;
-    text += `*TOTAL: Rp ${receipt.total.toLocaleString('id-ID')}*\n`;
-    text += `Metode Pembayaran: ${receipt.payment_method === 'qr' ? 'QRIS (Gopay)' : 'Tunai (Cash)'}\n\n`;
-    text += `Terima Kasih atas Kunjungan Anda!`;
-
-    return `https://wa.me/?text=${encodeURIComponent(text)}`;
-  };
-
   return (
     <div className="flex flex-col gap-4" style={{ paddingBottom: '100px' }}>
       {/* Filters Card */}
       <div className="card bg-white border p-4">
         <span className="text-meta mb-2 block" style={{ fontWeight: 600 }}>Filter Riwayat</span>
         <div className="grid grid-cols-2 gap-2">
-          {/* Cashier Filter */}
           <div className="flex flex-col gap-1">
             <label className="text-meta" style={{ fontSize: '11px' }}>Kasir</label>
             <select
@@ -125,7 +102,6 @@ export default function RiwayatClient({
             </select>
           </div>
 
-          {/* Date Filter */}
           <div className="flex flex-col gap-1">
             <label className="text-meta" style={{ fontSize: '11px' }}>Tanggal</label>
             <input
@@ -201,72 +177,97 @@ export default function RiwayatClient({
         )}
       </div>
 
-      {/* Receipt Dialog Overlay */}
+      {/* Receipt Modal */}
       {selectedTx && (
         <div className="overlay overlay-enter" onClick={() => setSelectedTx(null)}>
           <div
             className="modal modal-enter"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '400px', padding: 'var(--space-2)' }}
+            style={{
+              maxWidth: '400px',
+              width: '100%',
+              padding: 'var(--space-4)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-4)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
           >
-            <div className="receipt-stub" style={{ boxShadow: 'none' }}>
-              <h2 className="text-heading" style={{ fontSize: '20px', margin: 'var(--space-3) 0' }}>
-                {storeName}
-              </h2>
-              <div className="text-meta">No. Nota: #{selectedTx.id}</div>
-              <div className="text-meta">Waktu: {formatIndoDate(selectedTx.timestamp)}</div>
-              <div className="text-meta">Kasir: {selectedTx.cashier_name}</div>
+            <ReceiptDocument
+              storeName={storeName}
+              transactionId={selectedTx.id}
+              timestamp={selectedTx.timestamp}
+              cashierName={selectedTx.cashier_name}
+              paymentMethod={selectedTx.payment_method}
+              items={(itemsByTxId[selectedTx.id] || []).map((item) => ({
+                name: item.name_snapshot,
+                price: item.price_snapshot,
+                quantity: item.quantity,
+              }))}
+              total={selectedTx.total}
+            />
 
-              <hr className="receipt-stub__separator" />
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+              <button
+                className="btn btn-primary btn--full"
+                onClick={async () => {
+                  try {
+                    const el = document.getElementById('receipt-document');
+                    if (el) await shareReceiptWhatsApp(el, storeName, selectedTx.id);
+                  } catch {
+                    toast.error('Gagal membagikan nota.');
+                  }
+                }}
+                style={{ justifyContent: 'center', gap: '8px', minHeight: '48px' }}
+              >
+                <MessageCircle size={18} />
+                Share WhatsApp
+              </button>
 
-              <div className="stack stack--2 text-left my-4">
-                {(itemsByTxId[selectedTx.id] || []).map((item, idx) => (
-                  <div key={idx} className="flex justify-between text-meta">
-                    <span>
-                      {item.quantity}x {item.name_snapshot}
-                    </span>
-                    <span className="text-numeral">
-                      Rp {(item.quantity * item.price_snapshot).toLocaleString('id-ID')}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <hr className="receipt-stub__separator" />
-
-              <div className="receipt-stub__total-label">TOTAL BELANJA</div>
-              <div className="receipt-stub__total" style={{ fontSize: '28px' }}>
-                Rp {selectedTx.total.toLocaleString('id-ID')}
-              </div>
-
-              <div className="receipt-stub__status">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{ width: '16px', height: '16px' }}
+              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                <button
+                  className="btn btn-secondary btn--full"
+                  onClick={async () => {
+                    try {
+                      const el = document.getElementById('receipt-document');
+                      if (el) await downloadReceiptPDF(el, `nota-${storeName}-${selectedTx.id}.pdf`);
+                      toast.success('PDF berhasil diunduh!');
+                    } catch {
+                      toast.error('Gagal membuat PDF.');
+                    }
+                  }}
+                  style={{ justifyContent: 'center', gap: '8px', minHeight: '48px' }}
                 >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                Pembayaran {selectedTx.payment_method === 'qr' ? 'QRIS' : 'Tunai'} Berhasil
-              </div>
-
-              <div className="receipt-stub__actions">
-                <a
-                  href={getWhatsAppShareLink(selectedTx)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-primary btn--full"
+                  <Download size={16} />
+                  PDF
+                </button>
+                <button
+                  className="btn btn-secondary btn--full"
+                  onClick={async () => {
+                    try {
+                      const el = document.getElementById('receipt-document');
+                      if (el) await downloadReceiptImage(el, `nota-${storeName}-${selectedTx.id}.png`);
+                      toast.success('Gambar berhasil diunduh!');
+                    } catch {
+                      toast.error('Gagal membuat gambar.');
+                    }
+                  }}
+                  style={{ justifyContent: 'center', gap: '8px', minHeight: '48px' }}
                 >
-                  Bagikan ke WhatsApp
-                </a>
-                
-                <button className="btn btn-secondary btn--full" onClick={() => setSelectedTx(null)}>
-                  Tutup
+                  <FileImage size={16} />
+                  Gambar
                 </button>
               </div>
+
+              <button
+                className="btn btn-secondary btn--full"
+                onClick={() => setSelectedTx(null)}
+                style={{ justifyContent: 'center', minHeight: '48px' }}
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>
