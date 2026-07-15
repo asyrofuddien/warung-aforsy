@@ -87,11 +87,13 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
     setProdBarcode(barcode);
 
     const result = await barcodeLookupAction(barcode);
-    if (result && result.name) {
+    if (result.found) {
       setProdName(result.name);
       toast.success(`Produk ditemukan: ${result.name}`);
     } else {
-      toast.info('Barcode tidak ditemukan di database. Silakan isi nama produk manual.');
+      toast.warning(`Barcode ${barcode} tidak ditemukan. Silakan isi nama produk manual.`, {
+        duration: 6000,
+      });
     }
     setIsLookupLoading(false);
   }, []);

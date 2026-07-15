@@ -252,39 +252,15 @@ export async function barcodeLookupAction(barcode: string) {
 
   if (!trimmed) {
     console.log(`[BARCODE] Empty barcode, skipping`);
-    return { name: '', brand: '', category: '' };
+    return { name: '', brand: '', category: '', found: false, reason: 'empty' };
   }
 
-  // 1. Try Indonesian Product Database
-  try {
-    console.log(`[BARCODE] Querying Indonesian DB...`);
-    const res = await fetch(
-      `https://api-products.alpha-projects.cloud/api/v1/products-barcode?barcode=${trimmed}`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-    console.log(`[BARCODE] Indonesian DB response status: ${res.status}`);
-    if (res.ok) {
-      const data = await res.json();
-      console.log(`[BARCODE] Indonesian DB data:`, JSON.stringify(data).substring(0, 300));
-      if (data && data.product_name) {
-        console.log(`[BARCODE] Found in Indonesian DB: ${data.product_name}`);
-        return {
-          name: data.product_name,
-          brand: data.brand || '',
-          category: data.category || '',
-        };
-      }
-    }
-  } catch (err) {
-    console.log(`[BARCODE] Indonesian DB error:`, err instanceof Error ? err.message : err);
-  }
-
-  // 2. Try Open Food / Products Facts
+  // 1. Try Open Food / Products Facts
   try {
     console.log(`[BARCODE] Querying Open Food Facts...`);
     const res = await fetch(
       `https://world.openfoodfacts.org/api/v3/product/${trimmed}?product_type=all`,
-      { signal: AbortSignal.timeout(5000) }
+      { signal: AbortSignal.timeout(8000) }
     );
     console.log(`[BARCODE] Open Facts response status: ${res.status}`);
     if (res.ok) {
@@ -297,6 +273,8 @@ export async function barcodeLookupAction(barcode: string) {
           name,
           brand: data.product.brands || '',
           category: data.product.categories || '',
+          found: true,
+          reason: 'ok',
         };
       }
     }
@@ -305,5 +283,5 @@ export async function barcodeLookupAction(barcode: string) {
   }
 
   console.log(`[BARCODE] Not found in any database for: ${trimmed}`);
-  return { name: '', brand: '', category: '' };
+  return { name: '', brand: '', category: '', found: false, reason: 'not_found' };
 }
