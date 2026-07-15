@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Camera } from 'lucide-react';
 import BarcodeScanner from '@/components/BarcodeScanner';
-import { lookupBarcode } from '@/lib/barcode-lookup';
+import { barcodeLookupAction } from './actions';
 import {
   toggleStockAction,
   addProductAction,
@@ -86,7 +86,7 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
     setIsLookupLoading(true);
     setProdBarcode(barcode);
 
-    const result = await lookupBarcode(barcode);
+    const result = await barcodeLookupAction(barcode);
     if (result && result.name) {
       setProdName(result.name);
       toast.success(`Produk ditemukan: ${result.name}`);
