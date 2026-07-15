@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Camera } from 'lucide-react';
+import { toast } from 'sonner';
+import BarcodeScanner from '@/components/BarcodeScanner';
 import { createTransactionAction } from './actions';
 import { toDirectImageUrl } from '@/lib/gdrive';
 
@@ -53,6 +56,9 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
   
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
 
+  // Barcode scanner
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const addToCart = useCallback((product: Product) => {
@@ -62,6 +68,25 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
       [product.id]: (prev[product.id] || 0) + 1,
     }));
   }, []);
+
+  const handleCashierScan = useCallback((barcode: string) => {
+    setIsScannerOpen(false);
+    const matchedProduct = products.find((p) => p.barcode && p.barcode.trim() === barcode.trim());
+    
+    if (matchedProduct) {
+      if (matchedProduct.in_stock === 1) {
+        addToCart(matchedProduct);
+        navigator.vibrate?.(100);
+        toast.success(`${matchedProduct.name} ditambahkan ke keranjang`);
+      } else {
+        setError(`Produk "${matchedProduct.name}" sedang habis.`);
+        setTimeout(() => setError(null), 3000);
+      }
+    } else {
+      setError('Barcode tidak ditemukan di produk.');
+      setTimeout(() => setError(null), 3000);
+    }
+  }, [products, addToCart]);
 
   const removeFromCart = (productId: number) => {
     setCart((prev) => {
@@ -207,37 +232,48 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
   return (
     <div className="flex flex-col gap-4">
       {/* Search Input Zone (§5) */}
-      <div className="relative">
-        <input
-          ref={searchInputRef}
-          type="text"
-          placeholder="Cari produk atau scan barcode..."
-          value={search}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          className="input input--search"
-        />
-        <svg
-          className="absolute"
-          style={{
-            left: '16px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: '20px',
-            height: '20px',
-            color: 'var(--color-muted-ink)',
-            pointerEvents: 'none',
-          }}
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Cari produk atau scan barcode..."
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="input input--search"
+          />
+          <svg
+            className="absolute"
+            style={{
+              left: '16px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '20px',
+              height: '20px',
+              color: 'var(--color-muted-ink)',
+              pointerEvents: 'none',
+            }}
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsScannerOpen(true)}
+          className="btn btn-secondary"
+          style={{ minWidth: '48px', justifyContent: 'center', padding: '0 12px' }}
+          title="Scan Barcode"
         >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+          <Camera size={20} />
+        </button>
       </div>
 
       {/* Category Filter Tabs */}
@@ -697,6 +733,12 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
           </div>
         </div>
       )}
+
+      <BarcodeScanner
+        isOpen={isScannerOpen}
+        onScan={handleCashierScan}
+        onClose={() => setIsScannerOpen(false)}
+      />
     </div>
   );
 }

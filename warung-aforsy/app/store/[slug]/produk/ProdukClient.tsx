@@ -1,7 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { Camera } from 'lucide-react';
+import BarcodeScanner from '@/components/BarcodeScanner';
+import { lookupBarcode } from '@/lib/barcode-lookup';
 import {
   toggleStockAction,
   addProductAction,
@@ -73,6 +76,25 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Barcode scanner
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isLookupLoading, setIsLookupLoading] = useState(false);
+
+  const handleBarcodeScan = useCallback(async (barcode: string) => {
+    setIsScannerOpen(false);
+    setIsLookupLoading(true);
+    setProdBarcode(barcode);
+
+    const result = await lookupBarcode(barcode);
+    if (result && result.name) {
+      setProdName(result.name);
+      toast.success(`Produk ditemukan: ${result.name}`);
+    } else {
+      toast.info('Barcode tidak ditemukan di database. Silakan isi nama produk manual.');
+    }
+    setIsLookupLoading(false);
+  }, []);
 
   // ---------- PRODUCT FUNCTIONS ----------
   
@@ -476,9 +498,19 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
 
               <div className="flex flex-col gap-1">
                 <label className="text-meta" style={{ fontWeight: 600 }}>Barcode / SKU</label>
+                <button
+                  type="button"
+                  onClick={() => setIsScannerOpen(true)}
+                  className="btn btn-secondary btn--full"
+                  disabled={isLookupLoading}
+                  style={{ justifyContent: 'center', gap: '8px', marginBottom: '4px' }}
+                >
+                  <Camera size={18} />
+                  {isLookupLoading ? 'Mencari produk...' : 'Scan Barcode dengan Kamera'}
+                </button>
                 <input
                   type="text"
-                  placeholder="Scan barcode atau ketik manual"
+                  placeholder="Atau ketik manual"
                   value={prodBarcode}
                   onChange={(e) => setProdBarcode(e.target.value)}
                   className="input"
@@ -570,6 +602,16 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
 
               <div className="flex flex-col gap-1">
                 <label className="text-meta" style={{ fontWeight: 600 }}>Barcode / SKU</label>
+                <button
+                  type="button"
+                  onClick={() => setIsScannerOpen(true)}
+                  className="btn btn-secondary btn--full"
+                  disabled={isLookupLoading}
+                  style={{ justifyContent: 'center', gap: '8px', marginBottom: '4px' }}
+                >
+                  <Camera size={18} />
+                  {isLookupLoading ? 'Mencari produk...' : 'Scan Barcode dengan Kamera'}
+                </button>
                 <input
                   type="text"
                   value={prodBarcode}
@@ -848,6 +890,12 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
           </div>
         </div>
       )}
+
+      <BarcodeScanner
+        isOpen={isScannerOpen}
+        onScan={handleBarcodeScan}
+        onClose={() => setIsScannerOpen(false)}
+      />
     </div>
   );
 }
