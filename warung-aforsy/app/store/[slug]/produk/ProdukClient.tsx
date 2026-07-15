@@ -1005,7 +1005,7 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
           <div
             className="modal modal-enter"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '480px', maxHeight: '90vh' }}
+            style={{ maxWidth: '480px' }}
           >
             <div className="modal__handle"></div>
             <div className="flex justify-between items-center mb-4">
@@ -1116,7 +1116,7 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
                 </div>
 
                 {/* Product list */}
-                <div style={{ maxHeight: '45vh', overflowY: 'auto' }} className="stack stack--2">
+                <div className="stack stack--2">
                   {csvRows.map((row, idx) => {
                     const action = csvActions[idx]?.action || 'skip';
                     const isError = !!row.error;
