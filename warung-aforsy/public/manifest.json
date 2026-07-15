@@ -1,0 +1,19 @@
+{
+  "name": "Warungku",
+  "short_name": "Warungku",
+  "description": "Aplikasi Kasir Toko Kelontong",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#FAF6EE",
+  "theme_color": "#0F7A5C",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/file.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

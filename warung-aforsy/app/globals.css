@@ -1,0 +1,1482 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   WARUNGKU DESIGN SYSTEM
+   Comprehensive CSS based on Design-System-Warungku.md
+   
+   Principles:
+   - Glanceable over beautiful
+   - Thumb-first (primary actions at bottom)
+   - Feels like a till, not a hobby app
+   - Exclusively in Bahasa Indonesia
+   ========================================================================== */
+
+/* ==========================================================================
+   1. DESIGN TOKENS (CSS Custom Properties)
+   ========================================================================== */
+
+:root {
+  /* --- Color Tokens (§3) --- */
+  --color-paper: #FAF6EE;         /* App background — warm off-white */
+  --color-ink: #1E1B16;           /* Primary text, high contrast on paper */
+  --color-muted-ink: #756F62;     /* Timestamps, hints, secondary labels */
+  --color-warung-green: #0F7A5C;  /* Primary actions, "paid," in-stock */
+  --color-warung-green-dark: #0B5943; /* Pressed/active state for green */
+  --color-marigold: #E8A33D;      /* Out-of-stock, pending, edited flags */
+  --color-signal-red: #C6402F;    /* Errors, delete, failed payment */
+  --color-line: #DCD4C2;          /* Dividers, card borders, input outlines */
+
+  /* Derived / UI colors */
+  --color-white: #FFFFFF;
+  --color-stock-habis-bg: #F5E6E3;  /* Subtle red-tinted background for habis pill */
+  --color-stock-habis-text: #9E3A2B; /* Dark red text for habis pill */
+  --color-overlay: rgba(30, 27, 22, 0.5); /* Modal overlay */
+
+  /* --- Typography Tokens (§4) --- */
+  --font-body: var(--font-plus-jakarta-sans, 'Plus Jakarta Sans'), sans-serif;
+  --font-mono: var(--font-ibm-plex-mono, 'IBM Plex Mono'), monospace;
+
+  /* --- Spacing Scale (§5) — 4 / 8 / 12 / 16 / 24 / 32 / 48 px --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* --- Radii --- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* --- Tap Target (§5, §11) --- */
+  --tap-min: 48px;
+
+  /* --- Shadows --- */
+  --shadow-card: 0 1px 3px rgba(30, 27, 22, 0.08);
+  --shadow-elevated: 0 4px 12px rgba(30, 27, 22, 0.12);
+  --shadow-sticky: 0 -2px 8px rgba(30, 27, 22, 0.08);
+
+  /* --- Transitions --- */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-receipt: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   2. BASE / RESET
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* No dark mode for v1 — see design system §3 */
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--color-warung-green);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   3. TYPOGRAPHY CLASSES (§4)
+   ========================================================================== */
+
+/* Big total / price display — 32px, 700, Plex Mono */
+.text-total {
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+/* Section heading — 20px, 700, Jakarta Sans */
+.text-heading {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* Product name / body — 16px, 500, Jakarta Sans */
+.text-body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* Secondary / meta text — 13px, 400, Jakarta Sans */
+.text-meta {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--color-muted-ink);
+}
+
+/* Button label — 16px, 700, Jakarta Sans */
+.text-button {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Small numerals (SKU, time) — 13px, 500, Plex Mono */
+.text-numeral {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Price display (inline, smaller than total) */
+.text-price {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* ==========================================================================
+   4. LAYOUT CLASSES (§5)
+   ========================================================================== */
+
+/* Single-column page container — mobile-first, min 320px */
+.layout-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  min-width: 320px;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Main content area — scrollable, pushes footer down */
+.layout-main {
+  flex: 1;
+  padding: var(--space-4);
+  padding-bottom: calc(var(--space-7) + 80px); /* Room for sticky footer */
+}
+
+/* Top zone: store name + search/scan (§5) */
+.layout-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-paper);
+  border-bottom: 1px solid var(--color-line);
+  min-height: var(--tap-min);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.layout-top-bar__title {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.layout-top-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Sticky footer for cart total + Bayar button (§5) */
+.layout-sticky-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background-color: var(--color-paper);
+  border-top: 1px solid var(--color-line);
+  box-shadow: var(--shadow-sticky);
+  padding: var(--space-3) var(--space-4);
+}
+
+/* With bottom nav present, sticky footer sits above it */
+.layout-sticky-footer--above-nav {
+  bottom: 64px; /* Height of bottom nav */
+}
+
+/* Bottom navigation bar — 3 tabs max (§5) */
+.layout-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background-color: var(--color-paper);
+  border-top: 1px solid var(--color-line);
+  height: 64px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Scrollable content area when bottom nav + sticky footer present */
+.layout-main--with-footer-and-nav {
+  padding-bottom: calc(var(--space-7) + 80px + 64px);
+}
+
+/* ==========================================================================
+   5. COMPONENT CLASSES (§7)
+   ========================================================================== */
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  padding: var(--space-3) var(--space-5);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--transition-fast),
+              border-color var(--transition-fast),
+              transform var(--transition-fast);
+  user-select: none;
+  -webkit-user-select: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Primary — solid warung-green, white text */
+.btn-primary {
+  background-color: var(--color-warung-green);
+  color: var(--color-white);
+  border-color: var(--color-warung-green);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-warung-green-dark);
+  border-color: var(--color-warung-green-dark);
+}
+
+.btn-primary:active:not(:disabled) {
+  background-color: var(--color-warung-green-dark);
+}
+
+/* Secondary — outline in ink, transparent fill */
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-ink);
+  border-color: var(--color-ink);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: rgba(30, 27, 22, 0.05);
+}
+
+/* Danger — solid signal-red, white text */
+.btn-danger {
+  background-color: var(--color-signal-red);
+  color: var(--color-white);
+  border-color: var(--color-signal-red);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #A8352A;
+  border-color: #A8352A;
+}
+
+/* Ghost — no border, minimal */
+.btn-ghost {
+  background-color: transparent;
+  color: var(--color-ink);
+  border-color: transparent;
+  padding: var(--space-2) var(--space-3);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background-color: rgba(30, 27, 22, 0.05);
+}
+
+/* Full-width button */
+.btn--full {
+  width: 100%;
+}
+
+/* Small button variant */
+.btn--sm {
+  min-height: 36px;
+  padding: var(--space-2) var(--space-4);
+  font-size: 14px;
+}
+
+/* Icon-only button */
+.btn--icon {
+  padding: var(--space-2);
+  min-width: var(--tap-min);
+}
+
+/* ---------- Stock Pill (§7) ---------- */
+
+.stock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  min-height: 28px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast),
+              color var(--transition-fast);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Ada (available) — green */
+.stock-pill--ada {
+  background-color: rgba(15, 122, 92, 0.12);
+  color: var(--color-warung-green);
+}
+
+/* Habis (out-of-stock) — muted red */
+.stock-pill--habis {
+  background-color: var(--color-stock-habis-bg);
+  color: var(--color-stock-habis-text);
+}
+
+.stock-pill__icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* ---------- Payment Tabs (§7) ---------- */
+
+.payment-tabs {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background-color: rgba(30, 27, 22, 0.04);
+  border-radius: var(--radius-md);
+}
+
+.payment-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--color-muted-ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition-fast),
+              color var(--transition-fast),
+              box-shadow var(--transition-fast);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Selected tab — filled warung-green */
+.payment-tab--active {
+  background-color: var(--color-warung-green);
+  color: var(--color-white);
+  box-shadow: var(--shadow-card);
+}
+
+.payment-tab:not(.payment-tab--active):hover {
+  background-color: rgba(30, 27, 22, 0.06);
+}
+
+.payment-tab__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* ---------- Product Card (§7) ---------- */
+
+.product-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast),
+              border-color var(--transition-fast);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.product-card:hover {
+  box-shadow: var(--shadow-card);
+  border-color: var(--color-warung-green);
+}
+
+.product-card:active {
+  background-color: rgba(15, 122, 92, 0.03);
+}
+
+.product-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0; /* Allow text truncation */
+}
+
+.product-card__name {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-card__price {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.product-card__meta {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-muted-ink);
+}
+
+.product-card__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* ---------- Cart / Total Footer (§7) ---------- */
+
+.cart-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.cart-footer__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.cart-footer__item-count {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-muted-ink);
+}
+
+.cart-footer__total {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.cart-footer__action {
+  flex-shrink: 0;
+}
+
+/* ---------- Receipt Stub (§6) ---------- */
+
+.receipt-stub {
+  position: relative;
+  background-color: var(--color-white);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  padding: var(--space-6) var(--space-4) var(--space-4);
+  box-shadow: var(--shadow-elevated);
+  text-align: center;
+  overflow: hidden;
+}
+
+/* Dashed/scalloped top edge — evokes torn receipt paper */
+.receipt-stub::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background-image: radial-gradient(
+    circle at 8px 0,
+    transparent 8px,
+    var(--color-white) 8px
+  );
+  background-size: 16px 12px;
+  background-position: -8px top;
+  background-repeat: repeat-x;
+}
+
+/* Dashed line separator inside receipt */
+.receipt-stub__separator {
+  border: none;
+  border-top: 2px dashed var(--color-line);
+  margin: var(--space-4) 0;
+}
+
+.receipt-stub__total-label {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-muted-ink);
+  margin-bottom: var(--space-1);
+}
+
+.receipt-stub__total {
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.receipt-stub__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background-color: rgba(15, 122, 92, 0.12);
+  color: var(--color-warung-green);
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.receipt-stub__actions {
+  margin-top: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ---------- PIN Pad (§7) ---------- */
+
+.pin-pad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-7) var(--space-4);
+}
+
+.pin-pad__user {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-ink);
+  text-align: center;
+}
+
+.pin-pad__dots {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--color-line);
+  background-color: transparent;
+  transition: background-color var(--transition-fast),
+              border-color var(--transition-fast);
+}
+
+.pin-dot--filled {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+}
+
+.pin-pad__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 280px;
+}
+
+.pin-pad__key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: rgba(30, 27, 22, 0.04);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pin-pad__key:hover {
+  background-color: rgba(30, 27, 22, 0.08);
+}
+
+.pin-pad__key:active {
+  background-color: rgba(30, 27, 22, 0.12);
+}
+
+.pin-pad__key--action {
+  background-color: transparent;
+  font-size: 16px;
+  font-family: var(--font-body);
+}
+
+/* ---------- Bottom Navigation (§5) ---------- */
+
+.bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  width: 100%;
+  height: 100%;
+}
+
+.bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-muted-ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  border: none;
+  background: none;
+}
+
+.bottom-nav__item--active {
+  color: var(--color-warung-green);
+}
+
+.bottom-nav__item:hover:not(.bottom-nav__item--active) {
+  color: var(--color-ink);
+}
+
+.bottom-nav__icon {
+  width: 24px;
+  height: 24px;
+}
+
+.bottom-nav__label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* ---------- Card (generic) ---------- */
+
+.card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.card--elevated {
+  box-shadow: var(--shadow-card);
+  border-color: transparent;
+}
+
+/* ---------- Divider ---------- */
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--color-line);
+  margin: var(--space-4) 0;
+}
+
+.divider--dashed {
+  border-top-style: dashed;
+}
+
+/* ---------- Input / Search ---------- */
+
+.input {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--color-ink);
+  transition: border-color var(--transition-fast),
+              box-shadow var(--transition-fast);
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-muted-ink);
+}
+
+.input:focus {
+  border-color: var(--color-warung-green);
+  box-shadow: 0 0 0 3px rgba(15, 122, 92, 0.15);
+}
+
+.input--search {
+  padding-left: var(--space-7); /* Room for search icon */
+}
+
+/* ---------- Badge ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.badge--green {
+  background-color: rgba(15, 122, 92, 0.12);
+  color: var(--color-warung-green);
+}
+
+.badge--marigold {
+  background-color: rgba(232, 163, 61, 0.15);
+  color: #9A6B1E;
+}
+
+.badge--red {
+  background-color: rgba(198, 64, 47, 0.12);
+  color: var(--color-signal-red);
+}
+
+/* ---------- Modal / Overlay ---------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--color-overlay);
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal {
+  background-color: var(--color-paper);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal__handle {
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-line);
+  margin: 0 auto var(--space-4);
+}
+
+/* ---------- Empty State ---------- */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-7) var(--space-4);
+  text-align: center;
+}
+
+.empty-state__icon {
+  width: 48px;
+  height: 48px;
+  color: var(--color-muted-ink);
+  opacity: 0.5;
+}
+
+.empty-state__title {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.empty-state__text {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-muted-ink);
+}
+
+/* ==========================================================================
+   6. SPACING UTILITIES
+   ========================================================================== */
+
+/* Gap */
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.gap-5 { gap: var(--space-5); }
+.gap-6 { gap: var(--space-6); }
+.gap-7 { gap: var(--space-7); }
+
+/* Padding — all sides */
+.p-1 { padding: var(--space-1); }
+.p-2 { padding: var(--space-2); }
+.p-3 { padding: var(--space-3); }
+.p-4 { padding: var(--space-4); }
+.p-5 { padding: var(--space-5); }
+.p-6 { padding: var(--space-6); }
+.p-7 { padding: var(--space-7); }
+
+/* Padding — horizontal */
+.px-1 { padding-left: var(--space-1); padding-right: var(--space-1); }
+.px-2 { padding-left: var(--space-2); padding-right: var(--space-2); }
+.px-3 { padding-left: var(--space-3); padding-right: var(--space-3); }
+.px-4 { padding-left: var(--space-4); padding-right: var(--space-4); }
+.px-5 { padding-left: var(--space-5); padding-right: var(--space-5); }
+.px-6 { padding-left: var(--space-6); padding-right: var(--space-6); }
+.px-7 { padding-left: var(--space-7); padding-right: var(--space-7); }
+
+/* Padding — vertical */
+.py-1 { padding-top: var(--space-1); padding-bottom: var(--space-1); }
+.py-2 { padding-top: var(--space-2); padding-bottom: var(--space-2); }
+.py-3 { padding-top: var(--space-3); padding-bottom: var(--space-3); }
+.py-4 { padding-top: var(--space-4); padding-bottom: var(--space-4); }
+.py-5 { padding-top: var(--space-5); padding-bottom: var(--space-5); }
+.py-6 { padding-top: var(--space-6); padding-bottom: var(--space-6); }
+.py-7 { padding-top: var(--space-7); padding-bottom: var(--space-7); }
+
+/* Margin — all sides */
+.m-1 { margin: var(--space-1); }
+.m-2 { margin: var(--space-2); }
+.m-3 { margin: var(--space-3); }
+.m-4 { margin: var(--space-4); }
+.m-5 { margin: var(--space-5); }
+.m-6 { margin: var(--space-6); }
+.m-7 { margin: var(--space-7); }
+
+/* Margin — horizontal */
+.mx-1 { margin-left: var(--space-1); margin-right: var(--space-1); }
+.mx-2 { margin-left: var(--space-2); margin-right: var(--space-2); }
+.mx-3 { margin-left: var(--space-3); margin-right: var(--space-3); }
+.mx-4 { margin-left: var(--space-4); margin-right: var(--space-4); }
+.mx-5 { margin-left: var(--space-5); margin-right: var(--space-5); }
+.mx-6 { margin-left: var(--space-6); margin-right: var(--space-6); }
+.mx-7 { margin-left: var(--space-7); margin-right: var(--space-7); }
+
+/* Margin — vertical */
+.my-1 { margin-top: var(--space-1); margin-bottom: var(--space-1); }
+.my-2 { margin-top: var(--space-2); margin-bottom: var(--space-2); }
+.my-3 { margin-top: var(--space-3); margin-bottom: var(--space-3); }
+.my-4 { margin-top: var(--space-4); margin-bottom: var(--space-4); }
+.my-5 { margin-top: var(--space-5); margin-bottom: var(--space-5); }
+.my-6 { margin-top: var(--space-6); margin-bottom: var(--space-6); }
+.my-7 { margin-top: var(--space-7); margin-bottom: var(--space-7); }
+
+/* Margin — auto centering */
+.mx-auto { margin-left: auto; margin-right: auto; }
+
+/* ==========================================================================
+   7. DISPLAY & FLEX UTILITIES
+   ========================================================================== */
+
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-row { flex-direction: row; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-1 { flex: 1; }
+.flex-shrink-0 { flex-shrink: 0; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+.self-center { align-self: center; }
+.self-end { align-self: flex-end; }
+
+.grid { display: grid; }
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+.hidden { display: none; }
+.block { display: block; }
+.inline-flex { display: inline-flex; }
+
+/* ==========================================================================
+   8. TEXT UTILITIES
+   ========================================================================== */
+
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+.text-ink { color: var(--color-ink); }
+.text-muted { color: var(--color-muted-ink); }
+.text-green { color: var(--color-warung-green); }
+.text-red { color: var(--color-signal-red); }
+.text-marigold { color: var(--color-marigold); }
+.text-white { color: var(--color-white); }
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.whitespace-nowrap { white-space: nowrap; }
+
+/* ==========================================================================
+   9. SIZING UTILITIES
+   ========================================================================== */
+
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.min-h-screen { min-height: 100vh; }
+.min-h-full { min-height: 100%; }
+
+/* ==========================================================================
+   10. POSITION UTILITIES
+   ========================================================================== */
+
+.relative { position: relative; }
+.absolute { position: absolute; }
+.sticky { position: sticky; }
+.fixed { position: fixed; }
+.inset-0 { inset: 0; }
+.top-0 { top: 0; }
+.bottom-0 { bottom: 0; }
+.left-0 { left: 0; }
+.right-0 { right: 0; }
+.z-10 { z-index: 10; }
+.z-20 { z-index: 20; }
+.z-30 { z-index: 30; }
+.z-40 { z-index: 40; }
+.z-50 { z-index: 50; }
+
+/* ==========================================================================
+   11. BORDER & ROUNDED UTILITIES
+   ========================================================================== */
+
+.border { border: 1px solid var(--color-line); }
+.border-t { border-top: 1px solid var(--color-line); }
+.border-b { border-bottom: 1px solid var(--color-line); }
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-full { border-radius: var(--radius-full); }
+
+/* ==========================================================================
+   12. BACKGROUND UTILITIES
+   ========================================================================== */
+
+.bg-paper { background-color: var(--color-paper); }
+.bg-white { background-color: var(--color-white); }
+.bg-green { background-color: var(--color-warung-green); }
+.bg-red { background-color: var(--color-signal-red); }
+.bg-marigold { background-color: var(--color-marigold); }
+
+/* ==========================================================================
+   13. SHADOW UTILITIES
+   ========================================================================== */
+
+.shadow-card { box-shadow: var(--shadow-card); }
+.shadow-elevated { box-shadow: var(--shadow-elevated); }
+.shadow-sticky { box-shadow: var(--shadow-sticky); }
+.shadow-none { box-shadow: none; }
+
+/* ==========================================================================
+   14. OVERFLOW UTILITIES
+   ========================================================================== */
+
+.overflow-hidden { overflow: hidden; }
+.overflow-y-auto { overflow-y: auto; }
+.overflow-x-hidden { overflow-x: hidden; }
+
+/* ==========================================================================
+   15. CURSOR UTILITIES
+   ========================================================================== */
+
+.cursor-pointer { cursor: pointer; }
+.cursor-not-allowed { cursor: not-allowed; }
+.select-none { user-select: none; -webkit-user-select: none; }
+
+/* ==========================================================================
+   16. OPACITY UTILITIES
+   ========================================================================== */
+
+.opacity-50 { opacity: 0.5; }
+.opacity-0 { opacity: 0; }
+.opacity-100 { opacity: 1; }
+
+/* ==========================================================================
+   17. ANIMATION & MOTION (§10)
+   ========================================================================== */
+
+/* Receipt stub entrance — slide up + fade, under 300ms */
+@keyframes receipt-enter {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.receipt-enter {
+  animation: receipt-enter var(--transition-receipt) forwards;
+}
+
+/* Overlay fade in */
+@keyframes overlay-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.overlay-enter {
+  animation: overlay-enter 200ms ease forwards;
+}
+
+/* Modal slide up */
+@keyframes modal-enter {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.modal-enter {
+  animation: modal-enter var(--transition-receipt) forwards;
+}
+
+/* Fade in generic */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-in {
+  animation: fade-in var(--transition-normal) forwards;
+}
+
+/* Respect prefers-reduced-motion (§10) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   18. ACCESSIBILITY (§11)
+   ========================================================================== */
+
+/* Focus-visible outlines using warung-green */
+:focus-visible {
+  outline: 2px solid var(--color-warung-green);
+  outline-offset: 2px;
+}
+
+/* Remove default outline for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Screen-reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ==========================================================================
+   19. ADMIN CONSOLE OVERRIDES (§8)
+   Desktop-first dashboard — same color tokens, no mobile constraints.
+   These styles activate above tablet breakpoint.
+   ========================================================================== */
+
+@media (min-width: 768px) {
+  .admin-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+  }
+
+  .admin-sidebar {
+    background-color: var(--color-white);
+    border-right: 1px solid var(--color-line);
+    padding: var(--space-5) 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .admin-sidebar__logo {
+    padding: 0 var(--space-5);
+    margin-bottom: var(--space-6);
+    font-family: var(--font-body);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-ink);
+  }
+
+  .admin-sidebar__nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .admin-sidebar__item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-5);
+    color: var(--color-muted-ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color var(--transition-fast),
+                color var(--transition-fast);
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+
+  .admin-sidebar__item:hover {
+    background-color: rgba(30, 27, 22, 0.04);
+    color: var(--color-ink);
+  }
+
+  .admin-sidebar__item--active {
+    color: var(--color-warung-green);
+    background-color: rgba(15, 122, 92, 0.06);
+    font-weight: 600;
+  }
+
+  .admin-main {
+    padding: var(--space-6);
+    overflow-y: auto;
+  }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-body);
+    font-size: 14px;
+  }
+
+  .admin-table th {
+    text-align: left;
+    padding: var(--space-3) var(--space-4);
+    font-weight: 600;
+    color: var(--color-muted-ink);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--color-line);
+  }
+
+  .admin-table td {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-line);
+    color: var(--color-ink);
+  }
+
+  .admin-table tr:hover td {
+    background-color: rgba(30, 27, 22, 0.02);
+  }
+
+  /* Admin form */
+  .admin-form {
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .admin-form__group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .admin-form__label {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+}
+
+/* ==========================================================================
+   19b. ADMIN MOBILE — Horizontal top nav (§8 responsive)
+   Below 768px the sidebar collapses into a sticky top bar with
+   horizontal nav links, matching the store-app thumb-first discipline.
+   ========================================================================== */
+
+/* Mobile: hide sidebar, show top nav */
+.admin-mobile-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-white);
+  border-bottom: 1px solid var(--color-line);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: var(--tap-min);
+}
+
+.admin-mobile-nav__logo {
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+.admin-mobile-nav__links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.admin-mobile-nav__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted-ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+  min-height: var(--tap-min);
+}
+
+.admin-mobile-nav__link--active {
+  color: var(--color-warung-green);
+  background-color: rgba(15, 122, 92, 0.06);
+}
+
+.admin-mobile-nav__link:hover:not(.admin-mobile-nav__link--active) {
+  color: var(--color-ink);
+  background-color: rgba(30, 27, 22, 0.04);
+}
+
+.admin-mobile-nav__link svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.admin-mobile-nav__logout {
+  padding: var(--space-2);
+  color: var(--color-signal-red);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Desktop: hide mobile nav, show sidebar */
+@media (min-width: 768px) {
+  .admin-mobile-nav {
+    display: none;
+  }
+}
+
+/* Mobile: single-column layout, no sidebar grid */
+@media (max-width: 767px) {
+  .admin-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .admin-sidebar {
+    display: none;
+  }
+
+  .admin-main {
+    padding: var(--space-4);
+    overflow-y: auto;
+  }
+
+  /* Stack stat cards on mobile */
+  .admin-table {
+    font-size: 13px;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+/* ==========================================================================
+   20. LIST UTILITIES
+   ========================================================================== */
+
+.list-none {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Stack layout — vertical list with gaps */
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.stack--1 { gap: var(--space-1); }
+.stack--2 { gap: var(--space-2); }
+.stack--3 { gap: var(--space-3); }
+.stack--4 { gap: var(--space-4); }
+.stack--5 { gap: var(--space-5); }
+
+/* Inline layout — horizontal with gaps */
+.inline {
+  display: flex;
+  align-items: center;
+}
+
+.inline--1 { gap: var(--space-1); }
+.inline--2 { gap: var(--space-2); }
+.inline--3 { gap: var(--space-3); }
+.inline--4 { gap: var(--space-4); }
