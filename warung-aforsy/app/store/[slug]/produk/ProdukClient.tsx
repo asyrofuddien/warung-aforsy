@@ -1125,7 +1125,7 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
                     return (
                       <div
                         key={idx}
-                        className="rounded-lg overflow-hidden"
+                        className="rounded-lg"
                         style={{
                           border: '1px solid',
                           borderColor: isError
@@ -1138,7 +1138,7 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
                       >
                         {/* Status bar */}
                         <div
-                          className="flex items-center gap-2 px-3 py-2"
+                          className="flex items-center gap-2 px-3 py-2 rounded-t-lg"
                           style={{
                             background: isError
                               ? 'rgba(198, 64, 47, 0.1)'
@@ -1175,74 +1175,69 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
 
                         {/* Product info */}
                         <div className="p-3">
-                          <div className="flex justify-between items-start gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="text-body" style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
-                                {row.name || '(Nama kosong)'}
-                              </div>
-                              <div className="flex flex-wrap gap-x-3 gap-y-1">
-                                <span className="text-numeral" style={{ fontSize: '13px' }}>
-                                  Rp {row.price.toLocaleString('id-ID')}
-                                </span>
-                                {row.barcode && (
-                                  <span className="text-meta" style={{ fontSize: '12px', background: 'var(--color-paper)', padding: '2px 6px', borderRadius: '4px' }}>
-                                    {row.barcode}
-                                  </span>
-                                )}
-                                {row.category && (
-                                  <span className="text-meta" style={{ fontSize: '12px' }}>
-                                    {row.category}
-                                  </span>
-                                )}
-                              </div>
-                              {isError && (
-                                <div className="text-meta" style={{ fontSize: '12px', color: 'var(--color-signal-red)', marginTop: '8px', fontWeight: 500 }}>
-                                  {row.error}
-                                </div>
-                              )}
-                              {isDuplicate && (
-                                <div className="text-meta" style={{ fontSize: '12px', color: 'var(--color-marigold)', marginTop: '8px', fontWeight: 500 }}>
-                                  <ArrowRight size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-                                  Cocok dengan: {row.duplicateOf!.name}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Action selector */}
-                            {!isError && (
-                              <select
-                                value={action}
-                                onChange={(e) => setCsvAction(idx, e.target.value as 'import' | 'replace' | 'skip')}
-                                className="input"
-                                style={{
-                                  minHeight: '36px',
-                                  fontSize: '12px',
-                                  fontWeight: 600,
-                                  padding: '4px 8px',
-                                  minWidth: '90px',
-                                  background: action === 'import'
-                                    ? 'rgba(15, 122, 92, 0.1)'
-                                    : action === 'replace'
-                                      ? 'rgba(232, 163, 61, 0.1)'
-                                      : 'var(--color-paper)',
-                                  borderColor: action === 'import'
-                                    ? 'var(--color-warung-green)'
-                                    : action === 'replace'
-                                      ? 'var(--color-marigold)'
-                                      : 'var(--color-line)',
-                                }}
-                              >
-                                {isDuplicate ? (
-                                  <>
-                                    <option value="replace">Ganti</option>
-                                    <option value="skip">Lewati</option>
-                                  </>
-                                ) : (
-                                  <option value="import">Import</option>
-                                )}
-                              </select>
+                          <div className="text-body" style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
+                            {row.name || '(Nama kosong)'}
+                          </div>
+                          <div className="flex flex-wrap gap-x-3 gap-y-1">
+                            <span className="text-numeral" style={{ fontSize: '13px' }}>
+                              Rp {row.price.toLocaleString('id-ID')}
+                            </span>
+                            {row.barcode && (
+                              <span className="text-meta" style={{ fontSize: '12px', background: 'var(--color-paper)', padding: '2px 6px', borderRadius: '4px' }}>
+                                {row.barcode}
+                              </span>
+                            )}
+                            {row.category && (
+                              <span className="text-meta" style={{ fontSize: '12px' }}>
+                                {row.category}
+                              </span>
                             )}
                           </div>
+                          {isError && (
+                            <div className="text-meta" style={{ fontSize: '12px', color: 'var(--color-signal-red)', marginTop: '8px', fontWeight: 500 }}>
+                              {row.error}
+                            </div>
+                          )}
+                          {isDuplicate && (
+                            <div className="text-meta" style={{ fontSize: '12px', color: 'var(--color-marigold)', marginTop: '8px', fontWeight: 500 }}>
+                              <ArrowRight size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                              Cocok dengan: {row.duplicateOf!.name}
+                            </div>
+                          )}
+
+                          {/* Action selector - full width on its own line */}
+                          {!isError && (
+                            <select
+                              value={action}
+                              onChange={(e) => setCsvAction(idx, e.target.value as 'import' | 'replace' | 'skip')}
+                              className="input mt-2"
+                              style={{
+                                width: '100%',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                minHeight: '40px',
+                                background: action === 'import'
+                                  ? 'rgba(15, 122, 92, 0.1)'
+                                  : action === 'replace'
+                                    ? 'rgba(232, 163, 61, 0.1)'
+                                    : 'var(--color-paper)',
+                                borderColor: action === 'import'
+                                  ? 'var(--color-warung-green)'
+                                  : action === 'replace'
+                                    ? 'var(--color-marigold)'
+                                    : 'var(--color-line)',
+                              }}
+                            >
+                              {isDuplicate ? (
+                                <>
+                                  <option value="replace">Ganti data yang ada</option>
+                                  <option value="skip">Lewati (tidak diimport)</option>
+                                </>
+                              ) : (
+                                <option value="import">Import sebagai baru</option>
+                              )}
+                            </select>
+                          )}
                         </div>
                       </div>
                     );
