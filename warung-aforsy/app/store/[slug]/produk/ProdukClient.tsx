@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import { Camera, Upload, Download } from 'lucide-react';
+import { Camera, Upload, Download, AlertCircle, CheckCircle2, XCircle, FileSpreadsheet, ArrowRight } from 'lucide-react';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import {
   barcodeLookupAction,
@@ -1005,11 +1005,11 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
           <div
             className="modal modal-enter"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '480px', maxHeight: '85vh' }}
+            style={{ maxWidth: '480px', maxHeight: '90vh' }}
           >
             <div className="modal__handle"></div>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-heading">Import Produk dari CSV</h3>
+              <h3 className="text-heading" style={{ fontSize: '18px' }}>Import Produk dari CSV</h3>
               <button className="btn btn-ghost btn--sm" onClick={() => { setIsCsvOpen(false); setCsvRows([]); setCsvActions([]); }}>
                 Tutup
               </button>
@@ -1018,30 +1018,68 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
             {csvRows.length === 0 ? (
               /* Step 1: Upload */
               <div className="flex flex-col gap-4">
-                <p className="text-meta">
-                  Upload file CSV dengan kolom: <strong>nama</strong>, <strong>harga_jual</strong>, harga_modal (opsional), barcode (opsional), kategori (opsional).
-                </p>
+                {/* Instructions */}
+                <div className="p-4 rounded-lg" style={{ background: 'var(--color-white)', border: '1px solid var(--color-line)' }}>
+                  <p className="text-body" style={{ fontWeight: 600, marginBottom: '12px' }}>Format CSV:</p>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-numeral" style={{ fontSize: '12px', minWidth: '100px' }}>nama*</span>
+                      <span className="text-meta" style={{ fontSize: '12px' }}>Nama produk</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-numeral" style={{ fontSize: '12px', minWidth: '100px' }}>harga_jual*</span>
+                      <span className="text-meta" style={{ fontSize: '12px' }}>Harga jual (angka)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-numeral" style={{ fontSize: '12px', minWidth: '100px' }}>harga_modal</span>
+                      <span className="text-meta" style={{ fontSize: '12px' }}>Harga modal (opsional)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-numeral" style={{ fontSize: '12px', minWidth: '100px' }}>barcode</span>
+                      <span className="text-meta" style={{ fontSize: '12px' }}>Barcode (opsional)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-numeral" style={{ fontSize: '12px', minWidth: '100px' }}>kategori</span>
+                      <span className="text-meta" style={{ fontSize: '12px' }}>Nama kategori (opsional)</span>
+                    </div>
+                  </div>
+                </div>
 
+                {/* Template download */}
                 <button
                   className="btn btn-secondary btn--full"
                   onClick={downloadCsvTemplate}
-                  style={{ justifyContent: 'center', gap: '8px' }}
+                  style={{ justifyContent: 'center', gap: '8px', height: '48px' }}
                 >
-                  <Download size={16} />
-                  Download Template CSV
+                  <Download size={18} />
+                  <span style={{ fontWeight: 600 }}>Download Template CSV</span>
                 </button>
 
+                {/* Upload area */}
                 <div
-                  className="border-2 border-dashed rounded-lg p-6 text-center"
-                  style={{ borderColor: 'var(--color-line)', background: 'var(--color-white)', cursor: 'pointer' }}
+                  className="rounded-lg text-center"
+                  style={{
+                    border: '2px dashed var(--color-warung-green)',
+                    background: 'rgba(15, 122, 92, 0.03)',
+                    cursor: 'pointer',
+                    padding: '32px 16px',
+                    transition: 'all 0.2s',
+                  }}
                   onClick={() => csvFileRef.current?.click()}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(15, 122, 92, 0.08)';
+                    e.currentTarget.style.borderColor = 'var(--color-warung-green)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(15, 122, 92, 0.03)';
+                  }}
                 >
-                  <Upload size={32} style={{ color: 'var(--color-muted-ink)', margin: '0 auto 8px' }} />
-                  <p className="text-meta" style={{ fontWeight: 600 }}>
-                    {isParsingCsv ? 'Memproses...' : 'Ketuk untuk pilih file CSV'}
+                  <FileSpreadsheet size={40} style={{ color: 'var(--color-warung-green)', margin: '0 auto 12px' }} />
+                  <p className="text-body" style={{ fontWeight: 600, marginBottom: '4px' }}>
+                    {isParsingCsv ? 'Memproses file...' : 'Pilih file CSV'}
                   </p>
-                  <p className="text-meta" style={{ fontSize: '11px' }}>
-                    Format: .csv
+                  <p className="text-meta" style={{ fontSize: '12px', color: 'var(--color-muted-ink)' }}>
+                    .csv, maksimal 1000 baris
                   </p>
                 </div>
                 <input
@@ -1054,73 +1092,170 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
               </div>
             ) : (
               /* Step 2: Preview & Conflict Resolution */
-              <div className="flex flex-col gap-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-meta" style={{ fontWeight: 600 }}>
-                    {csvRows.length} produk ditemukan
-                  </span>
-                  <span className="text-meta" style={{ fontSize: '11px', color: 'var(--color-muted-ink)' }}>
-                    {csvActions.filter((a) => a.action === 'import').length} baru / {csvActions.filter((a) => a.action === 'replace').length} ganti / {csvActions.filter((a) => a.action === 'skip').length} lewat
-                  </span>
+              <div className="flex flex-col gap-4">
+                {/* Summary stats */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-3 rounded-lg text-center" style={{ background: 'rgba(15, 122, 92, 0.08)', border: '1px solid rgba(15, 122, 92, 0.2)' }}>
+                    <div className="text-numeral" style={{ fontSize: '20px', color: 'var(--color-warung-green)', fontWeight: 700 }}>
+                      {csvActions.filter((a) => a.action === 'import').length}
+                    </div>
+                    <div className="text-meta" style={{ fontSize: '11px', color: 'var(--color-warung-green)' }}>Baru</div>
+                  </div>
+                  <div className="p-3 rounded-lg text-center" style={{ background: 'rgba(232, 163, 61, 0.08)', border: '1px solid rgba(232, 163, 61, 0.2)' }}>
+                    <div className="text-numeral" style={{ fontSize: '20px', color: 'var(--color-marigold)', fontWeight: 700 }}>
+                      {csvActions.filter((a) => a.action === 'replace').length}
+                    </div>
+                    <div className="text-meta" style={{ fontSize: '11px', color: 'var(--color-marigold)' }}>Ganti</div>
+                  </div>
+                  <div className="p-3 rounded-lg text-center" style={{ background: 'rgba(198, 64, 47, 0.08)', border: '1px solid rgba(198, 64, 47, 0.2)' }}>
+                    <div className="text-numeral" style={{ fontSize: '20px', color: 'var(--color-signal-red)', fontWeight: 700 }}>
+                      {csvActions.filter((a) => a.action === 'skip').length}
+                    </div>
+                    <div className="text-meta" style={{ fontSize: '11px', color: 'var(--color-signal-red)' }}>Lewati</div>
+                  </div>
                 </div>
 
-                <div style={{ maxHeight: '40vh', overflowY: 'auto' }} className="stack stack--2">
-                  {csvRows.map((row, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 border rounded-md"
-                      style={{
-                        background: row.error ? 'rgba(198, 64, 47, 0.05)' : row.duplicateOf ? 'rgba(232, 163, 61, 0.05)' : 'var(--color-white)',
-                        borderColor: row.error ? 'var(--color-signal-red)' : row.duplicateOf ? 'var(--color-marigold)' : 'var(--color-line)',
-                      }}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-body truncate" style={{ fontWeight: 600, fontSize: '14px' }}>
-                            {row.name || '(Kosong)'}
-                          </div>
-                          <div className="text-meta" style={{ fontSize: '11px' }}>
-                            Rp {row.price.toLocaleString('id-ID')} {row.barcode && <span className="text-numeral">| {row.barcode}</span>}
-                          </div>
-                          {row.error && (
-                            <div className="text-meta" style={{ fontSize: '11px', color: 'var(--color-signal-red)', fontWeight: 600, marginTop: '4px' }}>
-                              {row.error}
-                            </div>
+                {/* Product list */}
+                <div style={{ maxHeight: '45vh', overflowY: 'auto' }} className="stack stack--2">
+                  {csvRows.map((row, idx) => {
+                    const action = csvActions[idx]?.action || 'skip';
+                    const isError = !!row.error;
+                    const isDuplicate = !!row.duplicateOf && !isError;
+
+                    return (
+                      <div
+                        key={idx}
+                        className="rounded-lg overflow-hidden"
+                        style={{
+                          border: '1px solid',
+                          borderColor: isError
+                            ? 'var(--color-signal-red)'
+                            : isDuplicate
+                              ? 'var(--color-marigold)'
+                              : 'var(--color-line)',
+                          background: 'var(--color-white)',
+                        }}
+                      >
+                        {/* Status bar */}
+                        <div
+                          className="flex items-center gap-2 px-3 py-2"
+                          style={{
+                            background: isError
+                              ? 'rgba(198, 64, 47, 0.1)'
+                              : isDuplicate
+                                ? 'rgba(232, 163, 61, 0.1)'
+                                : 'rgba(15, 122, 92, 0.1)',
+                          }}
+                        >
+                          {isError ? (
+                            <XCircle size={14} style={{ color: 'var(--color-signal-red)', flexShrink: 0 }} />
+                          ) : isDuplicate ? (
+                            <AlertCircle size={14} style={{ color: 'var(--color-marigold)', flexShrink: 0 }} />
+                          ) : (
+                            <CheckCircle2 size={14} style={{ color: 'var(--color-warung-green)', flexShrink: 0 }} />
                           )}
-                          {row.duplicateOf && !row.error && (
-                            <div className="text-meta" style={{ fontSize: '11px', color: 'var(--color-marigold)', fontWeight: 600, marginTop: '4px' }}>
-                              Duplikat dari: {row.duplicateOf.name}
-                            </div>
-                          )}
+                          <span
+                            className="text-meta"
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              color: isError
+                                ? 'var(--color-signal-red)'
+                                : isDuplicate
+                                  ? 'var(--color-marigold)'
+                                  : 'var(--color-warung-green)',
+                            }}
+                          >
+                            {isError ? 'Error' : isDuplicate ? 'Duplikat' : 'Baru'}
+                          </span>
+                          <span className="text-meta" style={{ fontSize: '11px', color: 'var(--color-muted-ink)', marginLeft: 'auto' }}>
+                            Baris {row.rowNumber}
+                          </span>
                         </div>
 
-                        {!row.error && (
-                          <select
-                            value={csvActions[idx]?.action || 'skip'}
-                            onChange={(e) => setCsvAction(idx, e.target.value as 'import' | 'replace' | 'skip')}
-                            className="input"
-                            style={{ minHeight: '36px', fontSize: '12px', padding: '4px 8px', minWidth: '100px' }}
-                          >
-                            {row.duplicateOf ? (
-                              <>
-                                <option value="replace">Ganti</option>
-                                <option value="skip">Lewati</option>
-                              </>
-                            ) : (
-                              <option value="import">Import</option>
+                        {/* Product info */}
+                        <div className="p-3">
+                          <div className="flex justify-between items-start gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-body" style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
+                                {row.name || '(Nama kosong)'}
+                              </div>
+                              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                <span className="text-numeral" style={{ fontSize: '13px' }}>
+                                  Rp {row.price.toLocaleString('id-ID')}
+                                </span>
+                                {row.barcode && (
+                                  <span className="text-meta" style={{ fontSize: '12px', background: 'var(--color-paper)', padding: '2px 6px', borderRadius: '4px' }}>
+                                    {row.barcode}
+                                  </span>
+                                )}
+                                {row.category && (
+                                  <span className="text-meta" style={{ fontSize: '12px' }}>
+                                    {row.category}
+                                  </span>
+                                )}
+                              </div>
+                              {isError && (
+                                <div className="text-meta" style={{ fontSize: '12px', color: 'var(--color-signal-red)', marginTop: '8px', fontWeight: 500 }}>
+                                  {row.error}
+                                </div>
+                              )}
+                              {isDuplicate && (
+                                <div className="text-meta" style={{ fontSize: '12px', color: 'var(--color-marigold)', marginTop: '8px', fontWeight: 500 }}>
+                                  <ArrowRight size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                                  Cocok dengan: {row.duplicateOf!.name}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Action selector */}
+                            {!isError && (
+                              <select
+                                value={action}
+                                onChange={(e) => setCsvAction(idx, e.target.value as 'import' | 'replace' | 'skip')}
+                                className="input"
+                                style={{
+                                  minHeight: '36px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  padding: '4px 8px',
+                                  minWidth: '90px',
+                                  background: action === 'import'
+                                    ? 'rgba(15, 122, 92, 0.1)'
+                                    : action === 'replace'
+                                      ? 'rgba(232, 163, 61, 0.1)'
+                                      : 'var(--color-paper)',
+                                  borderColor: action === 'import'
+                                    ? 'var(--color-warung-green)'
+                                    : action === 'replace'
+                                      ? 'var(--color-marigold)'
+                                      : 'var(--color-line)',
+                                }}
+                              >
+                                {isDuplicate ? (
+                                  <>
+                                    <option value="replace">Ganti</option>
+                                    <option value="skip">Lewati</option>
+                                  </>
+                                ) : (
+                                  <option value="import">Import</option>
+                                )}
+                              </select>
                             )}
-                          </select>
-                        )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
-                <div className="flex gap-2 mt-2">
+                {/* Action buttons */}
+                <div className="flex gap-3 mt-2">
                   <button
                     className="btn btn-secondary btn--full"
                     onClick={() => { setCsvRows([]); setCsvActions([]); }}
                     disabled={isImportingCsv}
+                    style={{ height: '48px' }}
                   >
                     Batal
                   </button>
@@ -1128,9 +1263,16 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
                     className="btn btn-primary btn--full"
                     onClick={handleImportCsv}
                     disabled={isImportingCsv}
-                    style={{ justifyContent: 'center' }}
+                    style={{ justifyContent: 'center', height: '48px', gap: '8px' }}
                   >
-                    {isImportingCsv ? 'Mengimport...' : `Import ${csvActions.filter((a) => a.action !== 'skip').length} Produk`}
+                    {isImportingCsv ? (
+                      <span>Menyimpan...</span>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={18} />
+                        <span>Import {csvActions.filter((a) => a.action !== 'skip').length} Produk</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
