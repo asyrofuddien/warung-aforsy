@@ -1,10 +1,16 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import { Camera } from 'lucide-react';
+import { Camera, Upload, Download } from 'lucide-react';
 import BarcodeScanner from '@/components/BarcodeScanner';
-import { barcodeLookupAction } from './actions';
+import {
+  barcodeLookupAction,
+  parseCsvAction,
+  importCsvAction,
+  type ParsedCsvRow,
+  type CsvProductRow,
+} from './actions';
 import {
   toggleStockAction,
   addProductAction,
@@ -81,6 +87,14 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isLookupLoading, setIsLookupLoading] = useState(false);
 
+  // CSV Import
+  const [isCsvOpen, setIsCsvOpen] = useState(false);
+  const [csvRows, setCsvRows] = useState<ParsedCsvRow[]>([]);
+  const [csvActions, setCsvActions] = useState<{ rowName: string; action: 'import' | 'replace' | 'skip' }[]>([]);
+  const [isParsingCsv, setIsParsingCsv] = useState(false);
+  const [isImportingCsv, setIsImportingCsv] = useState(false);
+  const csvFileRef = useRef<HTMLInputElement>(null);
+
   const handleBarcodeScan = useCallback(async (barcode: string) => {
     setIsScannerOpen(false);
     setIsLookupLoading(true);
@@ -102,6 +116,77 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
       setIsLookupLoading(false);
     }
   }, []);
+
+  // ---------- CSV IMPORT FUNCTIONS ----------
+
+  const downloadCsvTemplate = () => {
+    const header = 'nama,harga_jual,harga_modal,barcode,kategori';
+    const example = 'Indomie Goreng,3500,2800,8999999002041,Mie Instan';
+    const blob = new Blob([`${header}\n${example}\n`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template-produk-warungku.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsParsingCsv(true);
+    try {
+      const content = await file.text();
+      const result = await parseCsvAction(storeId, content);
+      if (result.success && result.rows.length > 0) {
+        setCsvRows(result.rows);
+        setCsvActions(
+          result.rows.map((row) => ({
+            rowName: row.name,
+            action: row.duplicateOf ? ('skip' as const) : ('import' as const),
+          }))
+        );
+      } else {
+        toast.error(result.error || 'Gagal parse CSV.');
+      }
+    } catch {
+      toast.error('Gagal membaca file CSV.');
+    }
+    setIsParsingCsv(false);
+    if (csvFileRef.current) csvFileRef.current.value = '';
+  };
+
+  const setCsvAction = (index: number, action: 'import' | 'replace' | 'skip') => {
+    setCsvActions((prev) => prev.map((a, i) => (i === index ? { ...a, action } : a)));
+  };
+
+  const handleImportCsv = async () => {
+    setIsImportingCsv(true);
+    try {
+      const importRows: CsvProductRow[] = csvRows.map((r) => ({
+        name: r.name,
+        price: r.price,
+        cost_price: r.cost_price,
+        barcode: r.barcode,
+        category: r.category,
+      }));
+      const result = await importCsvAction(storeId, importRows, csvActions);
+      if (result.success) {
+        toast.success(`Import selesai: ${result.imported} baru, ${result.replaced} diganti, ${result.skipped} dilewati.`);
+        setIsCsvOpen(false);
+        setCsvRows([]);
+        setCsvActions([]);
+      } else {
+        toast.error(result.error || 'Gagal import.');
+      }
+    } catch {
+      toast.error('Gagal import CSV.');
+    }
+    setIsImportingCsv(false);
+  };
 
   // ---------- PRODUCT FUNCTIONS ----------
   
@@ -291,7 +376,23 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
         <button className="btn btn-primary" onClick={() => setIsAddOpen(true)}>
           + Tambah
         </button>
+        <button className="btn btn-secondary" onClick={() => setIsCsvOpen(true)}>
+          <Upload size={16} />
+        </button>
       </div>
+
+      {/* CSV Import hint */}
+      {products.length === 0 && (
+        <div className="text-meta text-center py-2" style={{ fontSize: '12px', color: 'var(--color-muted-ink)' }}>
+          Punya data produk dalam file CSV?{' '}
+          <button
+            onClick={() => setIsCsvOpen(true)}
+            style={{ color: 'var(--color-warung-green)', fontWeight: 600, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px' }}
+          >
+            Import CSV
+          </button>
+        </div>
+      )}
 
       {/* Category Filter Tabs */}
       {categories.length > 0 && (
@@ -894,6 +995,146 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
                 })
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Import Modal */}
+      {isCsvOpen && (
+        <div className="overlay overlay-enter" onClick={() => { setIsCsvOpen(false); setCsvRows([]); setCsvActions([]); }}>
+          <div
+            className="modal modal-enter"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '480px', maxHeight: '85vh' }}
+          >
+            <div className="modal__handle"></div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-heading">Import Produk dari CSV</h3>
+              <button className="btn btn-ghost btn--sm" onClick={() => { setIsCsvOpen(false); setCsvRows([]); setCsvActions([]); }}>
+                Tutup
+              </button>
+            </div>
+
+            {csvRows.length === 0 ? (
+              /* Step 1: Upload */
+              <div className="flex flex-col gap-4">
+                <p className="text-meta">
+                  Upload file CSV dengan kolom: <strong>nama</strong>, <strong>harga_jual</strong>, harga_modal (opsional), barcode (opsional), kategori (opsional).
+                </p>
+
+                <button
+                  className="btn btn-secondary btn--full"
+                  onClick={downloadCsvTemplate}
+                  style={{ justifyContent: 'center', gap: '8px' }}
+                >
+                  <Download size={16} />
+                  Download Template CSV
+                </button>
+
+                <div
+                  className="border-2 border-dashed rounded-lg p-6 text-center"
+                  style={{ borderColor: 'var(--color-line)', background: 'var(--color-white)', cursor: 'pointer' }}
+                  onClick={() => csvFileRef.current?.click()}
+                >
+                  <Upload size={32} style={{ color: 'var(--color-muted-ink)', margin: '0 auto 8px' }} />
+                  <p className="text-meta" style={{ fontWeight: 600 }}>
+                    {isParsingCsv ? 'Memproses...' : 'Ketuk untuk pilih file CSV'}
+                  </p>
+                  <p className="text-meta" style={{ fontSize: '11px' }}>
+                    Format: .csv
+                  </p>
+                </div>
+                <input
+                  ref={csvFileRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleCsvUpload}
+                  style={{ display: 'none' }}
+                />
+              </div>
+            ) : (
+              /* Step 2: Preview & Conflict Resolution */
+              <div className="flex flex-col gap-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-meta" style={{ fontWeight: 600 }}>
+                    {csvRows.length} produk ditemukan
+                  </span>
+                  <span className="text-meta" style={{ fontSize: '11px', color: 'var(--color-muted-ink)' }}>
+                    {csvActions.filter((a) => a.action === 'import').length} baru / {csvActions.filter((a) => a.action === 'replace').length} ganti / {csvActions.filter((a) => a.action === 'skip').length} lewat
+                  </span>
+                </div>
+
+                <div style={{ maxHeight: '40vh', overflowY: 'auto' }} className="stack stack--2">
+                  {csvRows.map((row, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 border rounded-md"
+                      style={{
+                        background: row.error ? 'rgba(198, 64, 47, 0.05)' : row.duplicateOf ? 'rgba(232, 163, 61, 0.05)' : 'var(--color-white)',
+                        borderColor: row.error ? 'var(--color-signal-red)' : row.duplicateOf ? 'var(--color-marigold)' : 'var(--color-line)',
+                      }}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-body truncate" style={{ fontWeight: 600, fontSize: '14px' }}>
+                            {row.name || '(Kosong)'}
+                          </div>
+                          <div className="text-meta" style={{ fontSize: '11px' }}>
+                            Rp {row.price.toLocaleString('id-ID')} {row.barcode && <span className="text-numeral">| {row.barcode}</span>}
+                          </div>
+                          {row.error && (
+                            <div className="text-meta" style={{ fontSize: '11px', color: 'var(--color-signal-red)', fontWeight: 600, marginTop: '4px' }}>
+                              {row.error}
+                            </div>
+                          )}
+                          {row.duplicateOf && !row.error && (
+                            <div className="text-meta" style={{ fontSize: '11px', color: 'var(--color-marigold)', fontWeight: 600, marginTop: '4px' }}>
+                              Duplikat dari: {row.duplicateOf.name}
+                            </div>
+                          )}
+                        </div>
+
+                        {!row.error && (
+                          <select
+                            value={csvActions[idx]?.action || 'skip'}
+                            onChange={(e) => setCsvAction(idx, e.target.value as 'import' | 'replace' | 'skip')}
+                            className="input"
+                            style={{ minHeight: '36px', fontSize: '12px', padding: '4px 8px', minWidth: '100px' }}
+                          >
+                            {row.duplicateOf ? (
+                              <>
+                                <option value="replace">Ganti</option>
+                                <option value="skip">Lewati</option>
+                              </>
+                            ) : (
+                              <option value="import">Import</option>
+                            )}
+                          </select>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2 mt-2">
+                  <button
+                    className="btn btn-secondary btn--full"
+                    onClick={() => { setCsvRows([]); setCsvActions([]); }}
+                    disabled={isImportingCsv}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    className="btn btn-primary btn--full"
+                    onClick={handleImportCsv}
+                    disabled={isImportingCsv}
+                    style={{ justifyContent: 'center' }}
+                  >
+                    {isImportingCsv ? 'Mengimport...' : `Import ${csvActions.filter((a) => a.action !== 'skip').length} Produk`}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

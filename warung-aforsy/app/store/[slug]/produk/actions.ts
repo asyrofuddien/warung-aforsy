@@ -285,3 +285,214 @@ export async function barcodeLookupAction(barcode: string) {
   console.log(`[BARCODE] Not found in any database for: ${trimmed}`);
   return { name: '', brand: '', category: '', found: false, reason: 'not_found' };
 }
+
+// ---------- CSV IMPORT ACTIONS ----------
+
+export interface CsvProductRow {
+  name: string;
+  price: number;
+  cost_price: number;
+  barcode: string;
+  category: string;
+}
+
+export interface ParsedCsvRow extends CsvProductRow {
+  rowNumber: number;
+  duplicateOf?: { id: number; name: string } | null;
+  error?: string;
+}
+
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+export async function parseCsvAction(storeId: number, csvContent: string) {
+  try {
+    const session = await getStoreSession();
+    if (!session || session.storeId !== storeId) {
+      return { success: false, error: 'Sesi tidak valid.', rows: [] as ParsedCsvRow[] };
+    }
+
+    const lines = csvContent.trim().split('\n');
+    if (lines.length < 2) {
+      return { success: false, error: 'CSV kosong atau hanya berisi header.', rows: [] as ParsedCsvRow[] };
+    }
+
+    const header = parseCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/\s/g, '_'));
+    const nameIdx = header.indexOf('nama');
+    const priceIdx = header.indexOf('harga_jual');
+    const costIdx = header.indexOf('harga_modal');
+    const barcodeIdx = header.indexOf('barcode');
+    const categoryIdx = header.indexOf('kategori');
+
+    if (nameIdx === -1 || priceIdx === -1) {
+      return { success: false, error: 'CSV harus memiliki kolom "nama" dan "harga_jual".', rows: [] as ParsedCsvRow[] };
+    }
+
+    // Fetch existing products for duplicate detection
+    const existingProducts = db.prepare(
+      'SELECT id, name, barcode FROM products WHERE store_id = ?'
+    ).all(storeId) as { id: number; name: string; barcode: string }[];
+
+    // Fetch existing categories
+    const existingCategories = db.prepare(
+      'SELECT id, name FROM categories WHERE store_id = ?'
+    ).all(storeId) as { id: number; name: string }[];
+
+    const rows: ParsedCsvRow[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      const cols = parseCsvLine(line);
+      const name = (cols[nameIdx] || '').trim();
+      const priceStr = (cols[priceIdx] || '').trim();
+      const costStr = costIdx >= 0 ? (cols[costIdx] || '').trim() : '0';
+      const barcode = barcodeIdx >= 0 ? (cols[barcodeIdx] || '').trim() : '';
+      const category = categoryIdx >= 0 ? (cols[categoryIdx] || '').trim() : '';
+
+      if (!name) {
+        rows.push({ name: '', price: 0, cost_price: 0, barcode: '', category: '', rowNumber: i + 1, error: 'Nama produk kosong' });
+        continue;
+      }
+
+      const price = parseInt(priceStr, 10);
+      if (isNaN(price) || price <= 0) {
+        rows.push({ name, price: 0, cost_price: 0, barcode, category, rowNumber: i + 1, error: 'Harga jual harus angka > 0' });
+        continue;
+      }
+
+      const costPrice = parseInt(costStr, 10) || 0;
+
+      // Check for duplicate by name or barcode
+      let duplicateOf: { id: number; name: string } | null = null;
+      if (barcode) {
+        const dupByBarcode = existingProducts.find((p) => p.barcode === barcode);
+        if (dupByBarcode) {
+          duplicateOf = { id: dupByBarcode.id, name: dupByBarcode.name };
+        }
+      }
+      if (!duplicateOf) {
+        const dupByName = existingProducts.find((p) => p.name.toLowerCase() === name.toLowerCase());
+        if (dupByName) {
+          duplicateOf = { id: dupByName.id, name: dupByName.name };
+        }
+      }
+
+      rows.push({ name, price, cost_price: costPrice, barcode, category, rowNumber: i + 1, duplicateOf });
+    }
+
+    console.log(`[CSV] Parsed ${rows.length} rows for store ${storeId}`);
+    return { success: true, rows, categories: existingCategories };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Gagal parse CSV.';
+    return { success: false, error: message, rows: [] as ParsedCsvRow[] };
+  }
+}
+
+export async function importCsvAction(
+  storeId: number,
+  rows: CsvProductRow[],
+  actions: { rowName: string; action: 'import' | 'replace' | 'skip' }[]
+) {
+  try {
+    const session = await getStoreSession();
+    if (!session || session.storeId !== storeId) {
+      return { success: false, error: 'Sesi tidak valid.', imported: 0, skipped: 0, replaced: 0 };
+    }
+
+    // Fetch existing categories for auto-create
+    const existingCategories = db.prepare(
+      'SELECT id, name FROM categories WHERE store_id = ?'
+    ).all(storeId) as { id: number; name: string }[];
+
+    let imported = 0;
+    let skipped = 0;
+    let replaced = 0;
+
+    const insertProduct = db.prepare(`
+      INSERT INTO products (store_id, category_id, name, price, cost_price, barcode, in_stock)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `);
+
+    const updateProduct = db.prepare(`
+      UPDATE products SET name = ?, price = ?, cost_price = ?, barcode = ?, category_id = ?
+      WHERE id = ? AND store_id = ?
+    `);
+
+    // Process each row
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const actionEntry = actions[i];
+      if (!actionEntry || actionEntry.action === 'skip') {
+        skipped++;
+        continue;
+      }
+
+      // Resolve category
+      let categoryId: number | null = null;
+      if (row.category) {
+        const existingCat = existingCategories.find((c) => c.name.toLowerCase() === row.category.toLowerCase());
+        if (existingCat) {
+          categoryId = existingCat.id;
+        } else {
+          // Auto-create category
+          const result = db.prepare('INSERT INTO categories (store_id, name) VALUES (?, ?)').run(storeId, row.category);
+          const newCatId = result.lastInsertRowid as number;
+          existingCategories.push({ id: newCatId, name: row.category });
+          categoryId = newCatId;
+        }
+      }
+
+      if (actionEntry.action === 'replace') {
+        // Find existing product by name or barcode
+        const existing = db.prepare(
+          'SELECT id FROM products WHERE store_id = ? AND (name = ? OR (barcode != "" AND barcode = ?))'
+        ).get(storeId, row.name, row.barcode) as { id: number } | undefined;
+
+        if (existing) {
+          updateProduct.run(row.name, row.price, row.cost_price, row.barcode, categoryId, existing.id, storeId);
+          replaced++;
+        } else {
+          insertProduct.run(storeId, categoryId, row.name, row.price, row.cost_price, row.barcode);
+          imported++;
+        }
+      } else {
+        insertProduct.run(storeId, categoryId, row.name, row.price, row.cost_price, row.barcode);
+        imported++;
+      }
+    }
+
+    const slug = getSlug(storeId);
+    revalidatePath(`/store/${slug}`);
+    revalidatePath(`/store/${slug}/produk`);
+
+    console.log(`[CSV] Import done for store ${storeId}: ${imported} new, ${replaced} replaced, ${skipped} skipped`);
+    return { success: true, imported, replaced, skipped };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Gagal import CSV.';
+    return { success: false, error: message, imported: 0, skipped: 0, replaced: 0 };
+  }
+}
