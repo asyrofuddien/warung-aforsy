@@ -34,9 +34,9 @@ export default async function AdminLaporanPage() {
       t.store_id,
       s.name as store_name,
       COUNT(DISTINCT t.id) as total_transactions,
-      SUM(t.total) as total_revenue,
+      COALESCE(SUM(t.total), 0) as total_revenue,
       COALESCE(SUM(ti.cost_price_snapshot * ti.quantity), 0) as total_cost,
-      SUM(t.total) - COALESCE(SUM(ti.cost_price_snapshot * ti.quantity), 0) as total_profit
+      COALESCE(SUM(t.total), 0) - COALESCE(SUM(ti.cost_price_snapshot * ti.quantity), 0) as total_profit
     FROM transactions t
     JOIN stores s ON t.store_id = s.id
     LEFT JOIN transaction_items ti ON t.id = ti.transaction_id
@@ -51,9 +51,9 @@ export default async function AdminLaporanPage() {
       s.name as store_name,
       SUBSTR(t.timestamp, 1, 7) as period,
       COUNT(DISTINCT t.id) as total_transactions,
-      SUM(t.total) as total_revenue,
+      COALESCE(SUM(t.total), 0) as total_revenue,
       COALESCE(SUM(ti.cost_price_snapshot * ti.quantity), 0) as total_cost,
-      SUM(t.total) - COALESCE(SUM(ti.cost_price_snapshot * ti.quantity), 0) as total_profit
+      COALESCE(SUM(t.total), 0) - COALESCE(SUM(ti.cost_price_snapshot * ti.quantity), 0) as total_profit
     FROM transactions t
     JOIN stores s ON t.store_id = s.id
     LEFT JOIN transaction_items ti ON t.id = ti.transaction_id
@@ -65,9 +65,9 @@ export default async function AdminLaporanPage() {
   const globalTotals = db.prepare(`
     SELECT
       COUNT(DISTINCT t.id) as total_transactions,
-      SUM(t.total) as total_revenue,
+      COALESCE(SUM(t.total), 0) as total_revenue,
       COALESCE(SUM(ti.cost_price_snapshot * ti.quantity), 0) as total_cost,
-      SUM(t.total) - COALESCE(SUM(ti.cost_price_snapshot * ti.quantity), 0) as total_profit
+      COALESCE(SUM(t.total), 0) - COALESCE(SUM(ti.cost_price_snapshot * ti.quantity), 0) as total_profit
     FROM transactions t
     LEFT JOIN transaction_items ti ON t.id = ti.transaction_id
   `).get() as { total_transactions: number; total_revenue: number; total_cost: number; total_profit: number } | undefined;
