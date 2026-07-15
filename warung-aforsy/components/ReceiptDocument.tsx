@@ -48,11 +48,15 @@ export default function ReceiptDocument({
     <div
       id="receipt-document"
       style={{
-        width: "320px",
+        width: "100%",
+        maxWidth: "320px",
+        margin: "0 auto",
         background: "#FAF6EE",
         fontFamily: "'IBM Plex Mono', monospace",
         color: "#1E1B16",
         overflow: "hidden",
+        borderRadius: "var(--radius-md)",
+        boxShadow: "var(--shadow-elevated)",
       }}
     >
       {/* Top green accent bar */}

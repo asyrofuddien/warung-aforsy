@@ -623,7 +623,16 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
         <div className="overlay overlay-enter">
           <div
             className="modal modal-enter"
-            style={{ maxWidth: '400px', padding: '0', overflow: 'hidden' }}
+            style={{
+              maxWidth: '400px',
+              width: '100%',
+              padding: 'var(--space-4)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-4)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
           >
             {/* Receipt Document — rendered for canvas capture */}
             <ReceiptDocument
@@ -637,25 +646,24 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
             />
 
             {/* Action Buttons */}
-            <div style={{ padding: 'var(--space-4)', background: 'var(--color-paper)' }}>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-                <button
-                  className="btn btn-primary btn--full"
-                  onClick={async () => {
-                    try {
-                      const el = document.getElementById('receipt-document');
-                      if (el) await shareReceiptWhatsApp(el, storeName, receipt.transactionId);
-                    } catch {
-                      toast.error('Gagal membagikan nota.');
-                    }
-                  }}
-                  style={{ justifyContent: 'center', gap: '8px' }}
-                >
-                  <MessageCircle size={18} />
-                  Share WhatsApp
-                </button>
-              </div>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+              <button
+                className="btn btn-primary btn--full"
+                onClick={async () => {
+                  try {
+                    const el = document.getElementById('receipt-document');
+                    if (el) await shareReceiptWhatsApp(el, storeName, receipt.transactionId);
+                  } catch {
+                    toast.error('Gagal membagikan nota.');
+                  }
+                }}
+                style={{ justifyContent: 'center', gap: '8px', minHeight: '48px' }}
+              >
+                <MessageCircle size={18} />
+                Share WhatsApp
+              </button>
+
+              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 <button
                   className="btn btn-secondary btn--full"
                   onClick={async () => {
@@ -667,10 +675,10 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
                       toast.error('Gagal membuat PDF.');
                     }
                   }}
-                  style={{ justifyContent: 'center', gap: '8px' }}
+                  style={{ justifyContent: 'center', gap: '8px', minHeight: '48px' }}
                 >
                   <Download size={16} />
-                  Download PDF
+                  PDF
                 </button>
                 <button
                   className="btn btn-secondary btn--full"
@@ -683,13 +691,18 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
                       toast.error('Gagal membuat gambar.');
                     }
                   }}
-                  style={{ justifyContent: 'center', gap: '8px' }}
+                  style={{ justifyContent: 'center', gap: '8px', minHeight: '48px' }}
                 >
                   <FileImage size={16} />
-                  Download Gambar
+                  Gambar
                 </button>
               </div>
-              <button className="btn btn-secondary btn--full" onClick={clearCart} style={{ justifyContent: 'center' }}>
+
+              <button
+                className="btn btn-secondary btn--full"
+                onClick={clearCart}
+                style={{ justifyContent: 'center', minHeight: '48px' }}
+              >
                 Selesai & Tutup
               </button>
             </div>
