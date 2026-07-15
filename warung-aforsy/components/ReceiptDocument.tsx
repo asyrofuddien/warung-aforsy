@@ -97,7 +97,7 @@ export default function ReceiptDocument({
             <span>{formatDate(timestamp)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", lineHeight: "2" }}>
-            <span style={{ color: "#756F62" }}>Kasir</span>
+            <span style={{ color: "#756F62" }}>Oleh</span>
             <span>{cashierName}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", lineHeight: "2" }}>

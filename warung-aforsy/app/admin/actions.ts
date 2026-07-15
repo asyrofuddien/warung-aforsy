@@ -122,3 +122,100 @@ export async function toggleCommissionCollectedAction(recordId: number, currentC
     return { success: false, error: message };
   }
 }
+
+// --- User Management Actions ---
+
+export async function addUserAction(
+  storeId: number,
+  name: string,
+  pin: string,
+  isOwner: boolean
+) {
+  try {
+    const isAdmin = await getAdminSession();
+    if (!isAdmin) return { success: false, error: 'Akses tidak sah.' };
+
+    if (!name.trim()) return { success: false, error: 'Nama harus diisi.' };
+    if (!/^\d{6}$/.test(pin)) return { success: false, error: 'PIN harus 6 digit angka.' };
+
+    const pinHash = hashPIN(pin);
+    db.prepare(`
+      INSERT INTO persons (store_id, name, pin_hash, is_owner)
+      VALUES (?, ?, ?, ?)
+    `).run(storeId, name.trim(), pinHash, isOwner ? 1 : 0);
+
+    revalidatePath('/admin/user');
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Gagal menambahkan user.';
+    return { success: false, error: message };
+  }
+}
+
+export async function editUserAction(
+  personId: number,
+  name: string,
+  isOwner: boolean
+) {
+  try {
+    const isAdmin = await getAdminSession();
+    if (!isAdmin) return { success: false, error: 'Akses tidak sah.' };
+
+    if (!name.trim()) return { success: false, error: 'Nama harus diisi.' };
+
+    db.prepare(`
+      UPDATE persons SET name = ?, is_owner = ? WHERE id = ?
+    `).run(name.trim(), isOwner ? 1 : 0, personId);
+
+    revalidatePath('/admin/user');
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Gagal mengubah user.';
+    return { success: false, error: message };
+  }
+}
+
+export async function resetPinAction(
+  personId: number,
+  newPin: string
+) {
+  try {
+    const isAdmin = await getAdminSession();
+    if (!isAdmin) return { success: false, error: 'Akses tidak sah.' };
+
+    if (!/^\d{6}$/.test(newPin)) return { success: false, error: 'PIN harus 6 digit angka.' };
+
+    const pinHash = hashPIN(newPin);
+    db.prepare('UPDATE persons SET pin_hash = ? WHERE id = ?').run(pinHash, personId);
+
+    revalidatePath('/admin/user');
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Gagal reset PIN.';
+    return { success: false, error: message };
+  }
+}
+
+export async function deleteUserAction(personId: number) {
+  try {
+    const isAdmin = await getAdminSession();
+    if (!isAdmin) return { success: false, error: 'Akses tidak sah.' };
+
+    // Check if this is the only owner for the store
+    const person = db.prepare('SELECT store_id, is_owner FROM persons WHERE id = ?').get(personId) as { store_id: number; is_owner: number } | undefined;
+    if (!person) return { success: false, error: 'User tidak ditemukan.' };
+
+    if (person.is_owner === 1) {
+      const ownerCount = db.prepare('SELECT COUNT(*) as cnt FROM persons WHERE store_id = ? AND is_owner = 1').get(person.store_id) as { cnt: number };
+      if (ownerCount.cnt <= 1) return { success: false, error: 'Tidak bisa menghapus satu-satunya pemilik toko.' };
+    }
+
+    db.prepare('DELETE FROM persons WHERE id = ?').run(personId);
+
+    revalidatePath('/admin/user');
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Gagal menghapus user.';
+    return { success: false, error: message };
+  }
+}
