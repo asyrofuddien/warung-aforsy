@@ -76,7 +76,7 @@ export async function downloadReceiptImage(element: HTMLElement, filename: strin
   URL.revokeObjectURL(url);
 }
 
-export async function shareReceiptWhatsApp(element: HTMLElement, storeName: string, transactionId: number | bigint) {
+export async function shareReceiptWhatsApp(element: HTMLElement, storeName: string, transactionId: number | bigint, memberPhone?: string) {
   const blob = await generateReceiptImage(element);
   const file = new File([blob], `nota-${storeName}-${transactionId}.png`, { type: "image/png" });
 
@@ -91,7 +91,11 @@ export async function shareReceiptWhatsApp(element: HTMLElement, storeName: stri
   } else {
     const url = URL.createObjectURL(blob);
     const text = encodeURIComponent(caption);
-    window.open(`https://wa.me/?text=${text}&media=${url}`, "_blank");
+    const phone = memberPhone?.replace(/[^0-9]/g, '');
+    const waUrl = phone
+      ? `https://wa.me/${phone}?text=${text}`
+      : `https://wa.me/?text=${text}`;
+    window.open(waUrl, "_blank");
     URL.revokeObjectURL(url);
   }
 }

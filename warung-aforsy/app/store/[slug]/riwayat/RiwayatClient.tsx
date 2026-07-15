@@ -225,7 +225,7 @@ export default function RiwayatClient({
                   onClick={async () => {
                     try {
                       const el = document.getElementById('receipt-document');
-                      if (el) await shareReceiptWhatsApp(el, storeName, selectedTx.id);
+                      if (el) await shareReceiptWhatsApp(el, storeName, selectedTx.id, selectedTx.member_phone ?? undefined);
                     } catch {
                       toast.error('Gagal membagikan nota.');
                     }
