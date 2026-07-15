@@ -56,15 +56,17 @@ export async function shareReceiptWhatsApp(element: HTMLElement, storeName: stri
   const blob = await generateReceiptImage(element);
   const file = new File([blob], `nota-${storeName}-${transactionId}.png`, { type: "image/png" });
 
+  const caption = `Terima kasih telah berbelanja di *${storeName.toUpperCase()}*\nBerikut nota belanja Anda #${String(transactionId).padStart(6, "0")}`;
+
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     await navigator.share({
       title: `Nota ${storeName}`,
-      text: `Nota belanja #${transactionId} dari ${storeName}`,
+      text: caption,
       files: [file],
     });
   } else {
     const url = URL.createObjectURL(blob);
-    const text = encodeURIComponent(`Nota belanja #${transactionId} dari ${storeName}`);
+    const text = encodeURIComponent(caption);
     window.open(`https://wa.me/?text=${text}&media=${url}`, "_blank");
     URL.revokeObjectURL(url);
   }
