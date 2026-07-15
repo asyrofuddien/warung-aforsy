@@ -1,0 +1,71 @@
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+
+export async function generateReceiptImage(element: HTMLElement): Promise<Blob> {
+  const canvas = await html2canvas(element, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: "#FAF6EE",
+    logging: false,
+  });
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Gagal membuat gambar"));
+      },
+      "image/png",
+      1
+    );
+  });
+}
+
+export async function downloadReceiptPDF(element: HTMLElement, filename: string) {
+  const canvas = await html2canvas(element, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: "#FAF6EE",
+    logging: false,
+  });
+
+  const imgData = canvas.toDataURL("image/png", 1);
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: [80, (canvas.height * 80) / canvas.width],
+  });
+
+  pdf.addImage(imgData, "PNG", 0, 0, 80, (canvas.height * 80) / canvas.width);
+  pdf.save(filename);
+}
+
+export async function downloadReceiptImage(element: HTMLElement, filename: string) {
+  const blob = await generateReceiptImage(element);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export async function shareReceiptWhatsApp(element: HTMLElement, storeName: string, transactionId: number | bigint) {
+  const blob = await generateReceiptImage(element);
+  const file = new File([blob], `nota-${storeName}-${transactionId}.png`, { type: "image/png" });
+
+  if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    await navigator.share({
+      title: `Nota ${storeName}`,
+      text: `Nota belanja #${transactionId} dari ${storeName}`,
+      files: [file],
+    });
+  } else {
+    const url = URL.createObjectURL(blob);
+    const text = encodeURIComponent(`Nota belanja #${transactionId} dari ${storeName}`);
+    window.open(`https://wa.me/?text=${text}&media=${url}`, "_blank");
+    URL.revokeObjectURL(url);
+  }
+}

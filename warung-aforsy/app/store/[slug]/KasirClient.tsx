@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera } from 'lucide-react';
+import { Camera, Download, FileImage, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import BarcodeScanner from '@/components/BarcodeScanner';
+import ReceiptDocument from '@/components/ReceiptDocument';
+import { downloadReceiptPDF, downloadReceiptImage, shareReceiptWhatsApp } from '@/lib/receipt';
 import { createTransactionAction } from './actions';
 import { toDirectImageUrl } from '@/lib/gdrive';
 
@@ -168,44 +170,6 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
       setError(response.error || 'Gagal memproses transaksi.');
     }
     setLoading(false);
-  };
-
-  // Formats date into standard Indonesian format
-  const formatIndoDate = (isoStr: string) => {
-    try {
-      const d = new Date(isoStr);
-      return d.toLocaleString('id-ID', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }).replace(/\//g, '-');
-    } catch {
-      return isoStr;
-    }
-  };
-
-  // Create WhatsApp sharing text link
-  const getWhatsAppShareLink = () => {
-    if (!receipt) return '#';
-    
-    let text = `*${storeName.toUpperCase()}*\n`;
-    text += `Nota Belanja - #${receipt.transactionId}\n`;
-    text += `Tanggal: ${formatIndoDate(receipt.timestamp)}\n`;
-    text += `Kasir: ${receipt.cashierName}\n`;
-    text += `------------------------------------\n`;
-    
-    receipt.items.forEach((item) => {
-      text += `- ${item.quantity}x ${item.name} @ Rp ${item.price.toLocaleString('id-ID')} = Rp ${(item.quantity * item.price).toLocaleString('id-ID')}\n`;
-    });
-    
-    text += `------------------------------------\n`;
-    text += `*TOTAL: Rp ${receipt.total.toLocaleString('id-ID')}*\n`;
-    text += `Metode Pembayaran: ${receipt.paymentMethod === 'qr' ? 'QRIS (Gopay)' : 'Tunai (Cash)'}\n\n`;
-    text += `Terima Kasih atas Kunjungan Anda!`;
-
-    return `https://wa.me/?text=${encodeURIComponent(text)}`;
   };
 
   // Barcode scanner: detect exact barcode match on each keystroke
@@ -654,81 +618,80 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
         </div>
       )}
 
-      {/* Signature Receipt Stub Modal (§6) */}
+      {/* Receipt Modal */}
       {receipt && (
         <div className="overlay overlay-enter">
           <div
             className="modal modal-enter"
-            style={{ maxWidth: '400px', padding: 'var(--space-2)' }}
+            style={{ maxWidth: '400px', padding: '0', overflow: 'hidden' }}
           >
-            <div className="receipt-stub receipt-enter">
-              <h2 className="text-heading" style={{ fontSize: '22px', margin: 'var(--space-3) 0' }}>
-                {storeName}
-              </h2>
-              <div className="text-meta">No. Nota: #{receipt.transactionId}</div>
-              <div className="text-meta">Waktu: {formatIndoDate(receipt.timestamp)}</div>
-              <div className="text-meta">Kasir: {receipt.cashierName}</div>
+            {/* Receipt Document — rendered for canvas capture */}
+            <ReceiptDocument
+              storeName={storeName}
+              transactionId={receipt.transactionId}
+              timestamp={receipt.timestamp}
+              cashierName={receipt.cashierName}
+              paymentMethod={receipt.paymentMethod}
+              items={receipt.items}
+              total={receipt.total}
+            />
 
-              <hr className="receipt-stub__separator" />
-
-              <div className="stack stack--2 text-left my-4">
-                {receipt.items.map((item) => (
-                  <div key={item.productId} className="flex justify-between text-meta">
-                    <span>
-                      {item.quantity}x {item.name}
-                    </span>
-                    <span className="text-numeral">
-                      Rp {(item.quantity * item.price).toLocaleString('id-ID')}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <hr className="receipt-stub__separator" />
-
-              <div className="receipt-stub__total-label">TOTAL BELANJA</div>
-              <div className="receipt-stub__total">
-                Rp {receipt.total.toLocaleString('id-ID')}
-              </div>
-
-              <div className="receipt-stub__status">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{ width: '16px', height: '16px' }}
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                Pembayaran Berhasil
-              </div>
-
-              <div className="receipt-stub__actions">
-                <a
-                  href={getWhatsAppShareLink()}
-                  target="_blank"
-                  rel="noopener noreferrer"
+            {/* Action Buttons */}
+            <div style={{ padding: 'var(--space-4)', background: 'var(--color-paper)' }}>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+                <button
                   className="btn btn-primary btn--full"
+                  onClick={async () => {
+                    try {
+                      const el = document.getElementById('receipt-document');
+                      if (el) await shareReceiptWhatsApp(el, storeName, receipt.transactionId);
+                    } catch {
+                      toast.error('Gagal membagikan nota.');
+                    }
+                  }}
+                  style={{ justifyContent: 'center', gap: '8px' }}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    style={{ width: '18px', height: '18px' }}
-                  >
-                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                  </svg>
-                  Bagikan ke WhatsApp
-                </a>
-                
-                <button className="btn btn-secondary btn--full" onClick={clearCart}>
-                  Selesai & Tutup
+                  <MessageCircle size={18} />
+                  Share WhatsApp
                 </button>
               </div>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+                <button
+                  className="btn btn-secondary btn--full"
+                  onClick={async () => {
+                    try {
+                      const el = document.getElementById('receipt-document');
+                      if (el) await downloadReceiptPDF(el, `nota-${storeName}-${receipt.transactionId}.pdf`);
+                      toast.success('PDF berhasil diunduh!');
+                    } catch {
+                      toast.error('Gagal membuat PDF.');
+                    }
+                  }}
+                  style={{ justifyContent: 'center', gap: '8px' }}
+                >
+                  <Download size={16} />
+                  Download PDF
+                </button>
+                <button
+                  className="btn btn-secondary btn--full"
+                  onClick={async () => {
+                    try {
+                      const el = document.getElementById('receipt-document');
+                      if (el) await downloadReceiptImage(el, `nota-${storeName}-${receipt.transactionId}.png`);
+                      toast.success('Gambar berhasil diunduh!');
+                    } catch {
+                      toast.error('Gagal membuat gambar.');
+                    }
+                  }}
+                  style={{ justifyContent: 'center', gap: '8px' }}
+                >
+                  <FileImage size={16} />
+                  Download Gambar
+                </button>
+              </div>
+              <button className="btn btn-secondary btn--full" onClick={clearCart} style={{ justifyContent: 'center' }}>
+                Selesai & Tutup
+              </button>
             </div>
           </div>
         </div>
