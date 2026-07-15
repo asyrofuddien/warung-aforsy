@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   return (
-    <div className="bg-paper min-h-screen">
+    <div className="bg-paper min-h-screen" style={{ overflowX: 'hidden' }}>
       {isAdmin ? (
         <>
           {/* Mobile: horizontal top nav (hidden on desktop via CSS) */}
