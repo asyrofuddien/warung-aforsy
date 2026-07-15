@@ -1,6 +1,6 @@
 {
-  "name": "Warungku",
-  "short_name": "Warungku",
+  "name": "Warung Aforsy - Kasir Toko",
+  "short_name": "Warung Aforsy",
   "description": "Aplikasi Kasir Toko Kelontong",
   "start_url": ".",
   "display": "standalone",
@@ -8,12 +8,31 @@
   "theme_color": "#0F7A5C",
   "orientation": "portrait",
   "scope": "/",
+  "id": "/",
   "icons": [
     {
-      "src": "/file.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

@@ -29,7 +29,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
             {/* Desktop: sidebar navigation (hidden on mobile via CSS) */}
             <aside className="admin-sidebar">
               <div className="admin-sidebar__logo">
-                Warungku <span style={{ fontSize: '11px', color: 'var(--color-warung-green)' }}>Admin</span>
+                Warung Aforsy <span style={{ fontSize: '11px', color: 'var(--color-warung-green)' }}>Admin</span>
               </div>
               
               <nav className="admin-sidebar__nav">

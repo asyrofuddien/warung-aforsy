@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { addWarungAction, editWarungAction, toggleWarungActiveAction } from './actions';
+import CloudinaryUploadWidget from '@/components/CloudinaryUploadWidget';
 
 interface Store {
   id: number;
@@ -105,7 +106,7 @@ export default function AdminClient({ stores }: AdminClientProps) {
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h1 className="text-heading" style={{ fontSize: '26px' }}>Kelola Warung</h1>
-          <p className="text-meta">Daftar warung kelontong mitra platform Warungku</p>
+          <p className="text-meta">Daftar warung kelontong mitra platform Warung Aforsy</p>
         </div>
         
         <button className="btn btn-primary" onClick={() => setIsAddOpen(true)}>
@@ -260,14 +261,20 @@ export default function AdminClient({ stores }: AdminClientProps) {
               </div>
 
               <div className="admin-form__group" style={{ gridColumn: 'span 2' }}>
-                <label className="admin-form__label">GoPay/QRIS Image URL (Logo/Stiker QR Toko)</label>
-                <input
-                  type="text"
-                  placeholder="Link gambar QRIS atau kosongkan untuk default"
-                  value={qrUrl}
-                  onChange={(e) => setQrUrl(e.target.value)}
-                  className="input"
-                />
+                <label className="admin-form__label">Foto QRIS Toko</label>
+                {qrUrl ? (
+                  <div className="flex flex-col gap-2">
+                    <div style={{ width: '120px', height: '120px', border: '1px solid var(--color-line)', borderRadius: '8px', overflow: 'hidden' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={qrUrl} alt="QR Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    </div>
+                    <button type="button" className="btn btn-ghost btn--sm" onClick={() => setQrUrl('')} style={{ padding: 0, minHeight: 'auto', alignSelf: 'flex-start' }}>
+                      Hapus &amp; Upload Ulang
+                    </button>
+                  </div>
+                ) : (
+                  <CloudinaryUploadWidget onUpload={(url) => setQrUrl(url)} buttonText="Upload Foto QRIS" />
+                )}
               </div>
 
               <div className="divider" style={{ gridColumn: 'span 2', margin: 'var(--space-2) 0' }}></div>
@@ -368,13 +375,20 @@ export default function AdminClient({ stores }: AdminClientProps) {
               </div>
 
               <div className="admin-form__group">
-                <label className="admin-form__label">GoPay/QRIS Image URL</label>
-                <input
-                  type="text"
-                  value={qrUrl}
-                  onChange={(e) => setQrUrl(e.target.value)}
-                  className="input"
-                />
+                <label className="admin-form__label">Foto QRIS Toko</label>
+                {qrUrl ? (
+                  <div className="flex flex-col gap-2">
+                    <div style={{ width: '120px', height: '120px', border: '1px solid var(--color-line)', borderRadius: '8px', overflow: 'hidden' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={qrUrl} alt="QR Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    </div>
+                    <button type="button" className="btn btn-ghost btn--sm" onClick={() => setQrUrl('')} style={{ padding: 0, minHeight: 'auto', alignSelf: 'flex-start' }}>
+                      Hapus &amp; Upload Ulang
+                    </button>
+                  </div>
+                ) : (
+                  <CloudinaryUploadWidget onUpload={(url) => setQrUrl(url)} buttonText="Upload Foto QRIS" />
+                )}
               </div>
             </div>
 

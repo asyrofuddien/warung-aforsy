@@ -15,7 +15,7 @@ export default function AdminMobileNav() {
   return (
     <nav className="admin-mobile-nav">
       <span className="admin-mobile-nav__logo">
-        Warungku <span style={{ fontSize: '11px', color: 'var(--color-warung-green)' }}>Admin</span>
+        Warung Aforsy <span style={{ fontSize: '11px', color: 'var(--color-warung-green)' }}>Admin</span>
       </span>
 
       <div className="admin-mobile-nav__links">
