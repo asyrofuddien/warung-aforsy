@@ -86,16 +86,21 @@ export default function ProdukClient({ storeId, products, categories, staff, isO
     setIsLookupLoading(true);
     setProdBarcode(barcode);
 
-    const result = await barcodeLookupAction(barcode);
-    if (result.found) {
-      setProdName(result.name);
-      toast.success(`Produk ditemukan: ${result.name}`);
-    } else {
-      toast.warning(`Barcode ${barcode} tidak ditemukan. Silakan isi nama produk manual.`, {
-        duration: 6000,
-      });
+    try {
+      const result = await barcodeLookupAction(barcode);
+      if (result.found) {
+        setProdName(result.name);
+        toast.success(`Produk ditemukan: ${result.name}`);
+      } else {
+        toast.warning(`Barcode ${barcode} tidak ditemukan. Silakan isi nama produk manual.`, {
+          duration: 6000,
+        });
+      }
+    } catch {
+      toast.error('Gagal menghubungi server. Silakan coba lagi.', { duration: 4000 });
+    } finally {
+      setIsLookupLoading(false);
     }
-    setIsLookupLoading(false);
   }, []);
 
   // ---------- PRODUCT FUNCTIONS ----------
