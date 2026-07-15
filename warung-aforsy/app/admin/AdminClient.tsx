@@ -100,6 +100,15 @@ export default function AdminClient({ stores }: AdminClientProps) {
     await toggleWarungActiveAction(s.id, s.active);
   };
 
+  const handleCopyLink = (s: Store) => {
+    const url = `${window.location.origin}/store/${s.slug}`;
+    navigator.clipboard.writeText(url).then(() => {
+      toast.success(`Link PWA ${s.name} berhasil disalin!`);
+    }).catch(() => {
+      toast.error('Gagal menyalin link.');
+    });
+  };
+
   return (
     <div className="flex flex-col gap-6">
       {/* Page Title & Onboarding Button */}
@@ -196,9 +205,18 @@ export default function AdminClient({ stores }: AdminClientProps) {
                       Rp {(s.amount_owed || 0).toLocaleString('id-ID')}
                     </td>
                     <td>
-                      <button className="btn btn-secondary btn--sm" onClick={() => startEdit(s)}>
-                        Edit
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          className="btn btn-secondary btn--sm"
+                          onClick={() => handleCopyLink(s)}
+                          style={{ fontSize: '11px' }}
+                        >
+                          Salin Link
+                        </button>
+                        <button className="btn btn-secondary btn--sm" onClick={() => startEdit(s)}>
+                          Edit
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

@@ -88,6 +88,7 @@ export default async function RiwayatPage({ params }: RiwayatPageProps) {
         transactionItems={transactionItems}
         cashiers={cashiers}
         storeName={store.name}
+        isOwner={session.isOwner}
       />
     </div>
   );

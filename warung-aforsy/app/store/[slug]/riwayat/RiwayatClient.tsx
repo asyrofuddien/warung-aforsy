@@ -36,6 +36,32 @@ interface RiwayatClientProps {
   transactionItems: TransactionItem[];
   cashiers: Cashier[];
   storeName: string;
+  isOwner: boolean;
+}
+
+interface MonthlyData {
+  period: string;
+  label: string;
+  txCount: number;
+  totalRevenue: number;
+  totalProfit: number;
+  topProducts: { name: string; qty: number }[];
+  avgPerDay: number;
+  prevRevenue: number | null;
+  prevProfit: number | null;
+}
+
+function formatMonthLabel(periodStr: string): string {
+  try {
+    const [year, month] = periodStr.split('-');
+    const monthNames = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+    return `${monthNames[parseInt(month, 10) - 1]} ${year}`;
+  } catch {
+    return periodStr;
+  }
 }
 
 export default function RiwayatClient({
@@ -43,10 +69,71 @@ export default function RiwayatClient({
   transactionItems,
   cashiers,
   storeName,
+  isOwner,
 }: RiwayatClientProps) {
   const [filterCashier, setFilterCashier] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('');
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+
+  // --- Monthly Report (Owner Only) ---
+  const monthlyData: MonthlyData[] = (() => {
+    const monthMap: {
+      [period: string]: {
+        txs: Transaction[];
+        items: TransactionItem[];
+      };
+    } = {};
+
+    transactions.forEach((tx) => {
+      const period = tx.timestamp.substring(0, 7);
+      if (!monthMap[period]) monthMap[period] = { txs: [], items: [] };
+      monthMap[period].txs.push(tx);
+    });
+
+    transactionItems.forEach((item) => {
+      const tx = transactions.find((t) => t.id === item.transaction_id);
+      if (tx) {
+        const period = tx.timestamp.substring(0, 7);
+        if (monthMap[period]) monthMap[period].items.push(item);
+      }
+    });
+
+    return Object.entries(monthMap)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([period, data]) => {
+        const txCount = data.txs.length;
+        const totalRevenue = data.txs.reduce((acc, tx) => acc + tx.total, 0);
+        const totalProfit = data.items.reduce(
+          (acc, item) => acc + (item.price_snapshot - item.cost_price_snapshot) * item.quantity,
+          0
+        );
+
+        // Top 5 products by quantity
+        const productQty: { [name: string]: number } = {};
+        data.items.forEach((item) => {
+          productQty[item.name_snapshot] = (productQty[item.name_snapshot] || 0) + item.quantity;
+        });
+        const topProducts = Object.entries(productQty)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5)
+          .map(([name, qty]) => ({ name, qty }));
+
+        // Days in month for avg
+        const [year, month] = period.split('-');
+        const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+        const avgPerDay = Math.round(txCount / daysInMonth);
+
+        return { period, label: formatMonthLabel(period), txCount, totalRevenue, totalProfit, topProducts, avgPerDay, prevRevenue: null as number | null, prevProfit: null as number | null };
+      })
+      .map((entry, idx, arr) => {
+        if (idx < arr.length - 1) {
+          entry.prevRevenue = arr[idx + 1].totalRevenue;
+          entry.prevProfit = arr[idx + 1].totalProfit;
+        }
+        return entry;
+      });
+  })();
 
   const itemsByTxId = transactionItems.reduce((acc, item) => {
     if (!acc[item.transaction_id]) {
@@ -138,6 +225,143 @@ export default function RiwayatClient({
           </button>
         )}
       </div>
+
+      {/* Laporan Bulanan (Owner Only) */}
+      {isOwner && monthlyData.length > 0 && (
+        <div className="card bg-white border p-0 overflow-hidden">
+          <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-line)' }}>
+            <span className="text-meta" style={{ fontWeight: 700, fontSize: '14px' }}>Laporan Bulanan</span>
+            <span className="text-meta block" style={{ fontSize: '11px', marginTop: '2px' }}>
+              Ringkasan penjualan per bulan (klik untuk detail)
+            </span>
+          </div>
+
+          {/* Table Header */}
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: '1fr 80px 100px 100px',
+              padding: 'var(--space-2) var(--space-4)',
+              borderBottom: '2px solid var(--color-line)',
+              fontWeight: 700,
+              fontSize: '11px',
+              color: 'var(--color-muted-ink)',
+              textTransform: 'uppercase' as const,
+              letterSpacing: '0.05em',
+            }}
+          >
+            <span>Bulan</span>
+            <span style={{ textAlign: 'right' }}>Transaksi</span>
+            <span style={{ textAlign: 'right' }}>Pendapatan</span>
+            <span style={{ textAlign: 'right' }}>Keuntungan</span>
+          </div>
+
+          {/* Table Rows */}
+          {monthlyData.map((m) => {
+            const isExpanded = expandedMonth === m.period;
+            const revenueDiff = m.prevRevenue !== null ? ((m.totalRevenue - m.prevRevenue) / m.prevRevenue) * 100 : null;
+            const profitDiff = m.prevProfit !== null ? ((m.totalProfit - m.prevProfit) / m.prevProfit) * 100 : null;
+
+            return (
+              <div key={m.period}>
+                <div
+                  onClick={() => setExpandedMonth(isExpanded ? null : m.period)}
+                  className="grid cursor-pointer hover:bg-white"
+                  style={{
+                    gridTemplateColumns: '1fr 80px 100px 100px',
+                    padding: 'var(--space-3) var(--space-4)',
+                    borderBottom: '1px solid var(--color-line)',
+                    backgroundColor: isExpanded ? 'rgba(15, 122, 92, 0.04)' : undefined,
+                    transition: 'background-color 0.15s',
+                  }}
+                >
+                  <span className="text-meta" style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-ink)' }}>
+                    {m.label}
+                  </span>
+                  <span className="text-numeral" style={{ textAlign: 'right', fontSize: '13px' }}>
+                    {m.txCount}
+                  </span>
+                  <span className="text-numeral" style={{ textAlign: 'right', fontSize: '13px' }}>
+                    Rp {m.totalRevenue.toLocaleString('id-ID')}
+                  </span>
+                  <span className="text-numeral" style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, color: 'var(--color-warung-green)' }}>
+                    Rp {m.totalProfit.toLocaleString('id-ID')}
+                  </span>
+                </div>
+
+                {/* Expanded Detail */}
+                {isExpanded && (
+                  <div
+                    style={{
+                      padding: 'var(--space-3) var(--space-4)',
+                      borderBottom: '1px solid var(--color-line)',
+                      backgroundColor: 'rgba(15, 122, 92, 0.04)',
+                    }}
+                  >
+                    <div className="grid grid-cols-2 gap-3" style={{ marginBottom: 'var(--space-3)' }}>
+                      {/* Rata-rata per hari */}
+                      <div className="card bg-white p-3" style={{ boxShadow: 'none', border: '1px solid var(--color-line)' }}>
+                        <span className="text-meta" style={{ fontSize: '10px' }}>Rata-rata/Hari</span>
+                        <span className="text-numeral block" style={{ fontSize: '16px', fontWeight: 700 }}>
+                          {m.avgPerDay} tx
+                        </span>
+                      </div>
+
+                      {/* Perbandingan bulan lalu */}
+                      <div className="card bg-white p-3" style={{ boxShadow: 'none', border: '1px solid var(--color-line)' }}>
+                        <span className="text-meta" style={{ fontSize: '10px' }}>vs Bulan Lalu</span>
+                        {revenueDiff !== null ? (
+                          <span
+                            className="text-numeral block"
+                            style={{
+                              fontSize: '16px',
+                              fontWeight: 700,
+                              color: revenueDiff >= 0 ? 'var(--color-warung-green)' : 'var(--color-signal-red)',
+                            }}
+                          >
+                            {revenueDiff >= 0 ? '+' : ''}{revenueDiff.toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-numeral block" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-muted-ink)' }}>
+                            -
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Top Produk */}
+                    {m.topProducts.length > 0 && (
+                      <div>
+                        <span className="text-meta block mb-1" style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>
+                          Top Produk Terlaris
+                        </span>
+                        <div className="flex flex-col gap-1">
+                          {m.topProducts.map((p, idx) => (
+                            <div key={idx} className="flex justify-between" style={{ fontSize: '12px' }}>
+                              <span className="text-meta">{idx + 1}. {p.name}</span>
+                              <span className="text-numeral" style={{ fontWeight: 600 }}>{p.qty}x</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Profit detail */}
+                    {profitDiff !== null && (
+                      <div className="mt-2" style={{ fontSize: '11px', color: 'var(--color-muted-ink)' }}>
+                        Keuntungan bulan lalu: Rp {(m.prevProfit || 0).toLocaleString('id-ID')} (
+                        <span style={{ color: profitDiff >= 0 ? 'var(--color-warung-green)' : 'var(--color-signal-red)', fontWeight: 600 }}>
+                          {profitDiff >= 0 ? '+' : ''}{profitDiff.toFixed(1)}%
+                        </span>)
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Summary Box */}
       <div className="card bg-green text-white p-4 text-center">

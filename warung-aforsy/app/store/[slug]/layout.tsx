@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import db from '@/lib/db';
 import { getStoreSession } from '@/lib/auth';
 import BottomNav from '@/components/BottomNav';
@@ -6,6 +7,22 @@ import BottomNav from '@/components/BottomNav';
 interface StoreLayoutProps {
   children: React.ReactNode;
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const store = db.prepare('SELECT name FROM stores WHERE slug = ? AND active = 1').get(slug) as { name: string } | undefined;
+  if (!store) return {};
+
+  return {
+    manifest: `/api/manifest/${slug}`,
+    title: `Kasir ${store.name}`,
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: store.name,
+    },
+  };
 }
 
 export default async function StoreLayout({ children, params }: StoreLayoutProps) {
