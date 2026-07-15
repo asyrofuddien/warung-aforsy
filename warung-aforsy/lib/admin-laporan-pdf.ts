@@ -19,13 +19,12 @@ interface StoreMonthlyRow {
   total_profit: number;
 }
 
-// Colors matching web theme
-const PAPER = [250, 246, 238] as const;    // #FAF6EE
-const INK = [30, 27, 22] as const;         // #1E1B16
-const GREEN = [15, 122, 92] as const;      // #0F7A5C
-const MARIGOLD = [232, 163, 61] as const;  // #E8A33D
-const MUTED = [117, 111, 98] as const;     // #756F62
-const LINE = [220, 212, 194] as const;     // #DCD4C2
+const PAPER: [number, number, number] = [250, 246, 238];
+const INK: [number, number, number] = [30, 27, 22];
+const GREEN: [number, number, number] = [15, 122, 92];
+const MARIGOLD: [number, number, number] = [232, 163, 61];
+const MUTED: [number, number, number] = [117, 111, 98];
+const LINE: [number, number, number] = [220, 212, 194];
 
 function formatCurrency(amount: number): string {
   return `Rp ${amount.toLocaleString('id-ID')}`;
@@ -44,8 +43,14 @@ function formatMonthLabel(periodStr: string): string {
   }
 }
 
-function drawRoundedRect(doc: jsPDF, x: number, y: number, w: number, h: number, r: number) {
-  doc.roundedRect(x, y, w, h, r, r);
+function newPage(doc: jsPDF, pageW: number) {
+  doc.addPage();
+  const h = doc.internal.pageSize.getHeight();
+  doc.setFillColor(...PAPER);
+  doc.rect(0, 0, pageW, h, 'F');
+  doc.setFillColor(...GREEN);
+  doc.rect(0, 0, pageW, 6, 'F');
+  return 20;
 }
 
 export function generateLaporanPDF(
@@ -57,10 +62,9 @@ export function generateLaporanPDF(
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const margin = 20;
-  const contentW = pageW - margin * 2;
+  const margin = 15;
+  const contentW = pageW - margin * 2; // 180mm
 
-  // --- Page 1: Cover + Summary ---
   // Background
   doc.setFillColor(...PAPER);
   doc.rect(0, 0, pageW, pageH, 'F');
@@ -71,32 +75,39 @@ export function generateLaporanPDF(
 
   // Title
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
+  doc.setFontSize(20);
   doc.setTextColor(...INK);
-  doc.text('LAPORAN KEUNTUNGAN', margin, 24);
+  doc.text('LAPORAN KEUNTUNGAN', margin, 22);
 
   // Subtitle
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setTextColor(...MUTED);
   const filterLabel = selectedMonth === 'all' ? 'Semua Periode' : formatMonthLabel(selectedMonth);
   const storeLabel = selectedStoreNames.length === 0 ? 'Semua Warung' : selectedStoreNames.join(', ');
-  doc.text(`Periode: ${filterLabel}`, margin, 32);
-  doc.text(`Warung: ${storeLabel}`, margin, 38);
+  doc.text(`Periode: ${filterLabel}`, margin, 30);
+
+  // Wrap store label if too long
+  const storeLabelWidth = doc.getTextWidth(`Warung: ${storeLabel}`);
+  if (storeLabelWidth > contentW) {
+    doc.text('Warung: ' + storeLabel.substring(0, 40) + '...', margin, 36);
+  } else {
+    doc.text(`Warung: ${storeLabel}`, margin, 36);
+  }
 
   // Timestamp
   const now = new Date();
   const ts = now.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB';
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setTextColor(...MUTED);
-  doc.text(`Dicetak: ${ts}`, margin, 44);
+  doc.text(`Dicetak: ${ts}`, margin, 42);
 
-  // Divider line
+  // Divider
   doc.setDrawColor(...LINE);
   doc.setLineWidth(0.3);
-  doc.line(margin, 48, pageW - margin, 48);
+  doc.line(margin, 46, pageW - margin, 46);
 
-  // Summary cards
+  // Totals
   const totals = summaries.reduce(
     (acc, s) => ({
       total_transactions: acc.total_transactions + s.total_transactions,
@@ -107,246 +118,219 @@ export function generateLaporanPDF(
     { total_transactions: 0, total_revenue: 0, total_cost: 0, total_profit: 0 }
   );
 
-  const cardW = (contentW - 12) / 2;
-  const cardH = 22;
-  const cardY1 = 54;
+  // Summary cards - 2x2 grid
+  const gap = 8;
+  const cardW = (contentW - gap) / 2;
+  const cardH = 20;
+  const cardY1 = 52;
   const cardY2 = cardY1 + cardH + 6;
 
-  // Card 1: Total Pendapatan
-  drawRoundedRect(doc, margin, cardY1, cardW, cardH, 3);
-  doc.setFillColor(255, 255, 255);
-  doc.fill();
-  doc.setDrawColor(...LINE);
-  doc.setLineWidth(0.2);
-  doc.stroke();
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(...MUTED);
-  doc.text('Total Pendapatan', margin + 6, cardY1 + 8);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(...INK);
-  doc.text(formatCurrency(totals.total_revenue), margin + 6, cardY1 + 16);
+  const cards = [
+    { label: 'Total Pendapatan', value: formatCurrency(totals.total_revenue), x: margin, y: cardY1, color: INK, border: LINE },
+    { label: 'Total Modal (Beli × Qty)', value: formatCurrency(totals.total_cost), x: margin + cardW + gap, y: cardY1, color: INK, border: LINE },
+    { label: 'Total Keuntungan Bersih', value: formatCurrency(totals.total_profit), x: margin, y: cardY2, color: GREEN, border: GREEN },
+    { label: 'Total Transaksi', value: String(totals.total_transactions), x: margin + cardW + gap, y: cardY2, color: INK, border: LINE },
+  ];
 
-  // Card 2: Total Modal
-  drawRoundedRect(doc, margin + cardW + 12, cardY1, cardW, cardH, 3);
-  doc.setFillColor(255, 255, 255);
-  doc.fill();
-  doc.setDrawColor(...LINE);
-  doc.stroke();
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(...MUTED);
-  doc.text('Total Modal (Harga Beli × Qty)', margin + cardW + 18, cardY1 + 8);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(...INK);
-  doc.text(formatCurrency(totals.total_cost), margin + cardW + 18, cardY1 + 16);
+  cards.forEach((c) => {
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(c.x, c.y, cardW, cardH, 3, 3, 'F');
+    doc.setDrawColor(...c.border);
+    doc.setLineWidth(c.border === GREEN ? 0.4 : 0.2);
+    doc.stroke();
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text(c.label, c.x + 5, c.y + 7);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(...c.color);
+    doc.text(c.value, c.x + 5, c.y + 15);
+  });
 
-  // Card 3: Total Keuntungan
-  drawRoundedRect(doc, margin, cardY2, cardW, cardH, 3);
-  doc.setFillColor(255, 255, 255);
-  doc.fill();
-  doc.setDrawColor(...GREEN);
-  doc.setLineWidth(0.4);
-  doc.stroke();
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(...GREEN);
-  doc.text('Total Keuntungan Bersih', margin + 6, cardY2 + 8);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(...GREEN);
-  doc.text(formatCurrency(totals.total_profit), margin + 6, cardY2 + 16);
-
-  // Card 4: Total Transaksi
-  drawRoundedRect(doc, margin + cardW + 12, cardY2, cardW, cardH, 3);
-  doc.setFillColor(255, 255, 255);
-  doc.fill();
-  doc.setDrawColor(...LINE);
-  doc.setLineWidth(0.2);
-  doc.stroke();
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(...MUTED);
-  doc.text('Total Transaksi', margin + cardW + 18, cardY2 + 8);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(...INK);
-  doc.text(String(totals.total_transactions), margin + cardW + 18, cardY2 + 16);
-
-  // Note about calculation
-  const noteY = cardY2 + cardH + 10;
+  // Note
+  const noteY = cardY2 + cardH + 8;
   doc.setFont('helvetica', 'italic');
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setTextColor(...MUTED);
-  doc.text('Catatan: Modal = Σ (harga beli modal × jumlah per item). Keuntungan = Pendapatan - Modal.', margin, noteY);
+  doc.text('Catatan: Modal = (harga beli × jumlah per item). Keuntungan = Pendapatan - Modal.', margin, noteY);
 
   // --- Summary Table ---
-  let tableY = noteY + 10;
+  // Column layout: Warung | Transaksi | Pendapatan | Modal | Keuntungan
+  // Numeric columns right-aligned
+  const rightEdge = margin + contentW; // right edge of content area
+  const numW = 30; // width for currency columns
+  const numSmall = 18; // width for transaction count
+
+  const c5 = rightEdge - 2;            // Keuntungan right edge
+  const c4 = c5 - numW;                // Modal right edge
+  const c3 = c4 - numW;                // Pendapatan right edge
+  const c2 = c3 - numSmall;            // Transaksi right edge
+  // c1 = Warung left-aligned from margin + 2
+
+  let tableY = noteY + 8;
 
   // Table header
   doc.setFillColor(...GREEN);
-  doc.roundedRect(margin, tableY, contentW, 10, 2, 2, 'F');
+  doc.roundedRect(margin, tableY, contentW, 9, 2, 2, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setTextColor(255, 255, 255);
-  const colX = [margin + 4, margin + 55, margin + 85, margin + 120, margin + 150];
-  doc.text('Warung', colX[0], tableY + 7);
-  doc.text('Transaksi', colX[1], tableY + 7);
-  doc.text('Pendapatan', colX[2], tableY + 7);
-  doc.text('Modal', colX[3], tableY + 7);
-  doc.text('Keuntungan', colX[4], tableY + 7);
+  doc.text('Warung', margin + 3, tableY + 6.5);
+  doc.text('Transaksi', c2, tableY + 6.5, { align: 'right' });
+  doc.text('Pendapatan', c3, tableY + 6.5, { align: 'right' });
+  doc.text('Modal', c4, tableY + 6.5, { align: 'right' });
+  doc.text('Keuntungan', c5, tableY + 6.5, { align: 'right' });
 
-  tableY += 12;
+  tableY += 11;
 
   // Table rows
   summaries.forEach((s, idx) => {
-    if (tableY > pageH - 30) {
-      // New page
-      doc.addPage();
-      const newPageH = doc.internal.pageSize.getHeight();
-      doc.setFillColor(...PAPER);
-      doc.rect(0, 0, pageW, newPageH, 'F');
-      doc.setFillColor(...GREEN);
-      doc.rect(0, 0, pageW, 6, 'F');
-      tableY = 20;
+    if (tableY > pageH - 25) {
+      tableY = newPage(doc, pageW);
     }
 
-    // Alternating row bg
     if (idx % 2 === 0) {
       doc.setFillColor(255, 255, 255);
-      doc.rect(margin, tableY, contentW, 10, 'F');
+      doc.rect(margin, tableY, contentW, 9, 'F');
     }
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...INK);
-    doc.text(s.store_name, colX[0], tableY + 7);
-    doc.text(String(s.total_transactions), colX[1], tableY + 7);
-    doc.text(formatCurrency(s.total_revenue), colX[2], tableY + 7);
-    doc.text(formatCurrency(s.total_cost), colX[3], tableY + 7);
 
-    // Profit colored
+    // Truncate store name if too long
+    let name = s.store_name;
+    while (doc.getTextWidth(name) > c2 - margin - 8 && name.length > 3) {
+      name = name.slice(0, -1);
+    }
+    if (name !== s.store_name) name += '..';
+    doc.text(name, margin + 3, tableY + 6.5);
+
+    doc.text(String(s.total_transactions), c2, tableY + 6.5, { align: 'right' });
+    doc.text(formatCurrency(s.total_revenue), c3, tableY + 6.5, { align: 'right' });
+    doc.text(formatCurrency(s.total_cost), c4, tableY + 6.5, { align: 'right' });
+
     doc.setTextColor(s.total_profit >= 0 ? GREEN[0] : 220, s.total_profit >= 0 ? GREEN[1] : 50, s.total_profit >= 0 ? GREEN[2] : 50);
     doc.setFont('helvetica', 'bold');
-    doc.text(formatCurrency(s.total_profit), colX[4], tableY + 7);
+    doc.text(formatCurrency(s.total_profit), c5, tableY + 6.5, { align: 'right' });
 
-    // Separator line
     doc.setDrawColor(...LINE);
-    doc.setLineWidth(0.15);
-    doc.line(margin, tableY + 10, pageW - margin, tableY + 10);
+    doc.setLineWidth(0.1);
+    doc.line(margin, tableY + 9, margin + contentW, tableY + 9);
 
-    tableY += 11;
+    tableY += 10;
   });
 
   // Totals row
-  tableY += 2;
+  tableY += 1;
   doc.setFillColor(...INK);
-  doc.roundedRect(margin, tableY, contentW, 10, 2, 2, 'F');
+  doc.roundedRect(margin, tableY, contentW, 9, 2, 2, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setTextColor(255, 255, 255);
-  doc.text('TOTAL', colX[0], tableY + 7);
-  doc.text(String(totals.total_transactions), colX[1], tableY + 7);
-  doc.text(formatCurrency(totals.total_revenue), colX[2], tableY + 7);
-  doc.text(formatCurrency(totals.total_cost), colX[3], tableY + 7);
+  doc.text('TOTAL', margin + 3, tableY + 6.5);
+  doc.text(String(totals.total_transactions), c2, tableY + 6.5, { align: 'right' });
+  doc.text(formatCurrency(totals.total_revenue), c3, tableY + 6.5, { align: 'right' });
+  doc.text(formatCurrency(totals.total_cost), c4, tableY + 6.5, { align: 'right' });
   doc.setTextColor(...GREEN);
-  doc.text(formatCurrency(totals.total_profit), colX[4], tableY + 7);
+  doc.text(formatCurrency(totals.total_profit), c5, tableY + 6.5, { align: 'right' });
 
-  tableY += 18;
+  tableY += 16;
 
-  // --- Monthly Breakdown (if any) ---
+  // --- Monthly Breakdown ---
   if (monthlyData.length > 0) {
-    if (tableY > pageH - 60) {
-      doc.addPage();
-      const newPageH = doc.internal.pageSize.getHeight();
-      doc.setFillColor(...PAPER);
-      doc.rect(0, 0, pageW, newPageH, 'F');
-      doc.setFillColor(...GREEN);
-      doc.rect(0, 0, pageW, 6, 'F');
-      tableY = 20;
+    if (tableY > pageH - 50) {
+      tableY = newPage(doc, pageW);
     }
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
+    doc.setFontSize(12);
     doc.setTextColor(...INK);
     doc.text('Rincian Bulanan', margin, tableY);
     tableY += 8;
 
-    // Monthly table header
+    // Monthly columns: Warung | Periode | Transaksi | Pendapatan | Modal | Keuntungan
+    const mc6 = rightEdge - 2;
+    const mc5 = mc6 - numW;
+    const mc4 = mc5 - numW;
+    const mc3 = mc4 - numSmall;
+    const mc2 = mc3 - 28; // Periode
+    // mc1 = Warung
+
+    // Header
     doc.setFillColor(...MARIGOLD);
-    doc.roundedRect(margin, tableY, contentW, 10, 2, 2, 'F');
+    doc.roundedRect(margin, tableY, contentW, 9, 2, 2, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(...INK);
-    const mColX = [margin + 4, margin + 50, margin + 85, margin + 110, margin + 140, margin + 165];
-    doc.text('Warung', mColX[0], tableY + 7);
-    doc.text('Periode', mColX[1], tableY + 7);
-    doc.text('Transaksi', mColX[2], tableY + 7);
-    doc.text('Pendapatan', mColX[3], tableY + 7);
-    doc.text('Modal', mColX[4], tableY + 7);
-    doc.text('Keuntungan', mColX[5], tableY + 7);
+    doc.text('Warung', margin + 3, tableY + 6.5);
+    doc.text('Periode', mc2, tableY + 6.5, { align: 'right' });
+    doc.text('Transaksi', mc3, tableY + 6.5, { align: 'right' });
+    doc.text('Pendapatan', mc4, tableY + 6.5, { align: 'right' });
+    doc.text('Modal', mc5, tableY + 6.5, { align: 'right' });
+    doc.text('Keuntungan', mc6, tableY + 6.5, { align: 'right' });
 
-    tableY += 12;
+    tableY += 11;
 
-    monthlyData.forEach((m, idx) => {
-      if (tableY > pageH - 30) {
-        doc.addPage();
-        const newPageH = doc.internal.pageSize.getHeight();
-        doc.setFillColor(...PAPER);
-        doc.rect(0, 0, pageW, newPageH, 'F');
-        doc.setFillColor(...GREEN);
-        doc.rect(0, 0, pageW, 6, 'F');
-        tableY = 20;
-
-        // Repeat header on new page
+    const drawMonthlyRow = (m: StoreMonthlyRow, idx: number) => {
+      if (tableY > pageH - 25) {
+        tableY = newPage(doc, pageW);
+        // Repeat header
         doc.setFillColor(...MARIGOLD);
-        doc.roundedRect(margin, tableY, contentW, 10, 2, 2, 'F');
+        doc.roundedRect(margin, tableY, contentW, 9, 2, 2, 'F');
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
+        doc.setFontSize(7);
         doc.setTextColor(...INK);
-        doc.text('Warung', mColX[0], tableY + 7);
-        doc.text('Periode', mColX[1], tableY + 7);
-        doc.text('Transaksi', mColX[2], tableY + 7);
-        doc.text('Pendapatan', mColX[3], tableY + 7);
-        doc.text('Modal', mColX[4], tableY + 7);
-        doc.text('Keuntungan', mColX[5], tableY + 7);
-        tableY += 12;
+        doc.text('Warung', margin + 3, tableY + 6.5);
+        doc.text('Periode', mc2, tableY + 6.5, { align: 'right' });
+        doc.text('Transaksi', mc3, tableY + 6.5, { align: 'right' });
+        doc.text('Pendapatan', mc4, tableY + 6.5, { align: 'right' });
+        doc.text('Modal', mc5, tableY + 6.5, { align: 'right' });
+        doc.text('Keuntungan', mc6, tableY + 6.5, { align: 'right' });
+        tableY += 11;
       }
 
       if (idx % 2 === 0) {
         doc.setFillColor(255, 255, 255);
-        doc.rect(margin, tableY, contentW, 10, 'F');
+        doc.rect(margin, tableY, contentW, 9, 'F');
       }
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setTextColor(...INK);
-      doc.text(m.store_name, mColX[0], tableY + 7);
-      doc.text(formatMonthLabel(m.period), mColX[1], tableY + 7);
-      doc.text(String(m.total_transactions), mColX[2], tableY + 7);
-      doc.text(formatCurrency(m.total_revenue), mColX[3], tableY + 7);
-      doc.text(formatCurrency(m.total_cost), mColX[4], tableY + 7);
+
+      let name = m.store_name;
+      while (doc.getTextWidth(name) > mc2 - margin - 6 && name.length > 3) {
+        name = name.slice(0, -1);
+      }
+      if (name !== m.store_name) name += '..';
+      doc.text(name, margin + 3, tableY + 6.5);
+
+      doc.text(formatMonthLabel(m.period), mc2, tableY + 6.5, { align: 'right' });
+      doc.text(String(m.total_transactions), mc3, tableY + 6.5, { align: 'right' });
+      doc.text(formatCurrency(m.total_revenue), mc4, tableY + 6.5, { align: 'right' });
+      doc.text(formatCurrency(m.total_cost), mc5, tableY + 6.5, { align: 'right' });
 
       doc.setTextColor(m.total_profit >= 0 ? GREEN[0] : 220, m.total_profit >= 0 ? GREEN[1] : 50, m.total_profit >= 0 ? GREEN[2] : 50);
       doc.setFont('helvetica', 'bold');
-      doc.text(formatCurrency(m.total_profit), mColX[5], tableY + 7);
+      doc.text(formatCurrency(m.total_profit), mc6, tableY + 6.5, { align: 'right' });
 
       doc.setDrawColor(...LINE);
-      doc.setLineWidth(0.15);
-      doc.line(margin, tableY + 10, pageW - margin, tableY + 10);
+      doc.setLineWidth(0.1);
+      doc.line(margin, tableY + 9, margin + contentW, tableY + 9);
 
-      tableY += 11;
-    });
+      tableY += 10;
+    };
+
+    monthlyData.forEach((m, idx) => drawMonthlyRow(m, idx));
   }
 
-  // Footer on last page
+  // Footer
   const lastPageH = doc.internal.pageSize.getHeight();
   doc.setFillColor(...GREEN);
-  doc.rect(0, lastPageH - 6, pageW, 6, 'F');
+  doc.rect(0, lastPageH - 5, pageW, 5, 'F');
 
-  // Save
   const filename = `laporan-keuntungan${selectedMonth !== 'all' ? '-' + selectedMonth : ''}.pdf`;
   doc.save(filename);
 }
