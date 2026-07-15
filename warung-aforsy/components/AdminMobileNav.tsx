@@ -21,7 +21,7 @@ export default function AdminMobileNav() {
       <div className="admin-mobile-nav__links">
         <Link
           href="/admin"
-          className={`admin-mobile-nav__link ${isActive('/admin') && !isActive('/admin/komisi') ? 'admin-mobile-nav__link--active' : ''}`}
+          className={`admin-mobile-nav__link ${isActive('/admin') && !isActive('/admin/komisi') && !isActive('/admin/laporan') ? 'admin-mobile-nav__link--active' : ''}`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="7" height="9" />
@@ -41,6 +41,16 @@ export default function AdminMobileNav() {
             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
           </svg>
           <span>Komisi</span>
+        </Link>
+
+        <Link
+          href="/admin/laporan"
+          className={`admin-mobile-nav__link ${isActive('/admin/laporan') ? 'admin-mobile-nav__link--active' : ''}`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+          <span>Laporan</span>
         </Link>
 
         <form action={adminLogoutAction}>

@@ -65,6 +65,20 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
                   Laporan Komisi
                 </Link>
 
+                <Link href="/admin/laporan" className="admin-sidebar__item">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    style={{ width: '18px', height: '18px' }}
+                  >
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                  Laporan Keuntungan
+                </Link>
+
                 <div className="divider" style={{ margin: 'var(--space-4) 0' }}></div>
 
                 <form action={handleAdminLogout} style={{ padding: '0 var(--space-5)' }}>
