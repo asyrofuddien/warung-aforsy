@@ -1168,6 +1168,12 @@ a:hover {
   animation: fade-in var(--transition-normal) forwards;
 }
 
+/* Barcode scanner scan line */
+@keyframes scanLine {
+  0%, 100% { top: 8px; }
+  50% { top: calc(100% - 10px); }
+}
+
 /* Respect prefers-reduced-motion (§10) */
 @media (prefers-reduced-motion: reduce) {
   *,
