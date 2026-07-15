@@ -167,7 +167,7 @@ export default function KomisiClient({ records }: KomisiClientProps) {
                 </tr>
               ) : (
                 filteredRecords.map((r) => {
-                  const collectedAmount = r.collected === 1 && r.collected_at_sales !== null
+                  const collectedAmount = r.collected_at_sales !== null
                     ? Math.round((r.collected_at_sales * r.rate_applied) / 100)
                     : 0;
                   return (
@@ -186,7 +186,7 @@ export default function KomisiClient({ records }: KomisiClientProps) {
                       </td>
                       <td>
                         <span className={`badge ${r.collected === 1 ? 'badge--green' : 'badge--marigold'}`}>
-                          {r.collected === 1 ? 'Lunas (Diterima)' : 'Belum Ditagih (Pending)'}
+                          {r.collected === 1 ? 'Lunas (Diterima)' : r.collected_at_sales !== null ? 'Partial (Diterima sebagian)' : 'Belum Ditagih (Pending)'}
                         </span>
                       </td>
                       <td>
