@@ -82,20 +82,37 @@ export async function shareReceiptWhatsApp(element: HTMLElement, storeName: stri
 
   const caption = `Terima kasih telah berbelanja di *${storeName.toUpperCase()}*\nBerikut nota belanja Anda #${String(transactionId).padStart(6, "0")}`;
 
+  const phone = memberPhone?.replace(/[^0-9]/g, '');
+
+  // Try native share API first (sends image + text on mobile)
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
-    await navigator.share({
-      title: `Nota ${storeName}`,
-      text: caption,
-      files: [file],
-    });
-  } else {
-    const url = URL.createObjectURL(blob);
-    const text = encodeURIComponent(caption);
-    const phone = memberPhone?.replace(/[^0-9]/g, '');
-    const waUrl = phone
-      ? `https://wa.me/${phone}?text=${text}`
-      : `https://wa.me/?text=${text}`;
-    window.open(waUrl, "_blank");
-    URL.revokeObjectURL(url);
+    try {
+      await navigator.share({
+        title: `Nota ${storeName}`,
+        text: caption,
+        files: [file],
+      });
+      return;
+    } catch {
+      // User cancelled or error — fall through to wa.me
+    }
   }
+
+  // Fallback: open WhatsApp with image blob as data URL in new tab
+  const url = URL.createObjectURL(blob);
+  const text = encodeURIComponent(caption);
+  const waUrl = phone
+    ? `https://wa.me/${phone}?text=${text}`
+    : `https://wa.me/?text=${text}`;
+
+  // Download image for user to manually attach
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `nota-${storeName}-${transactionId}.png`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  window.open(waUrl, "_blank");
+  URL.revokeObjectURL(url);
 }

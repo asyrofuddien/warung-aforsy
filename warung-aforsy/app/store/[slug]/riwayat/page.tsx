@@ -19,6 +19,7 @@ interface TransactionItemRow {
   transaction_id: number;
   name_snapshot: string;
   price_snapshot: number;
+  cost_price_snapshot: number;
   quantity: number;
 }
 
@@ -65,7 +66,7 @@ export default async function RiwayatPage({ params }: RiwayatPageProps) {
 
   // 3. Fetch all line items snapshots
   const transactionItems = db.prepare(`
-    SELECT ti.transaction_id, ti.name_snapshot, ti.price_snapshot, ti.quantity
+    SELECT ti.transaction_id, ti.name_snapshot, ti.price_snapshot, ti.cost_price_snapshot, ti.quantity
     FROM transaction_items ti
     JOIN transactions t ON ti.transaction_id = t.id
     WHERE t.store_id = ?

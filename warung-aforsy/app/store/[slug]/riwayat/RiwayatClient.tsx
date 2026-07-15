@@ -22,6 +22,7 @@ interface TransactionItem {
   transaction_id: number;
   name_snapshot: string;
   price_snapshot: number;
+  cost_price_snapshot: number;
   quantity: number;
 }
 
@@ -66,6 +67,15 @@ export default function RiwayatClient({
   });
 
   const totalFilteredSales = filteredTxs.reduce((acc, curr) => acc + curr.total, 0);
+
+  // Calculate profit per transaction
+  const profitByTxId = transactionItems.reduce((acc, item) => {
+    const profit = (item.price_snapshot - item.cost_price_snapshot) * item.quantity;
+    acc[item.transaction_id] = (acc[item.transaction_id] || 0) + profit;
+    return acc;
+  }, {} as { [txId: number]: number });
+
+  const totalFilteredProfit = filteredTxs.reduce((acc, tx) => acc + (profitByTxId[tx.id] || 0), 0);
 
   const formatIndoDate = (isoStr: string, includeTime = true) => {
     try {
@@ -137,9 +147,14 @@ export default function RiwayatClient({
         <div className="text-total mt-1" style={{ fontSize: '28px' }}>
           Rp {totalFilteredSales.toLocaleString('id-ID')}
         </div>
-        <span className="text-meta text-white opacity-80 block mt-1" style={{ fontSize: '11px' }}>
-          Jumlah: {filteredTxs.length} Transaksi
-        </span>
+        <div className="flex justify-center gap-4 mt-2">
+          <span className="text-meta text-white opacity-80" style={{ fontSize: '11px' }}>
+            {filteredTxs.length} Transaksi
+          </span>
+          <span className="text-meta text-white opacity-80" style={{ fontSize: '11px' }}>
+            Keuntungan: Rp {totalFilteredProfit.toLocaleString('id-ID')}
+          </span>
+        </div>
       </div>
 
       {/* Transactions List */}
@@ -173,6 +188,9 @@ export default function RiwayatClient({
               <div className="text-right">
                 <span className="text-numeral block" style={{ fontWeight: 700, fontSize: '15px' }}>
                   Rp {tx.total.toLocaleString('id-ID')}
+                </span>
+                <span className="text-meta" style={{ fontSize: '11px', color: 'var(--color-warung-green)' }}>
+                  +Rp {(profitByTxId[tx.id] || 0).toLocaleString('id-ID')}
                 </span>
                 <span
                   className={`badge ${tx.payment_method === 'qr' ? 'badge--green' : 'badge--marigold'} mt-1`}
