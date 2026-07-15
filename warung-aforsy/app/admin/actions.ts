@@ -109,13 +109,27 @@ export async function toggleCommissionCollectedAction(recordId: number, currentC
     const isAdmin = await getAdminSession();
     if (!isAdmin) return { success: false, error: 'Akses tidak sah.' };
 
-    const newCollected = currentCollected === 1 ? 0 : 1;
-    db.prepare('UPDATE commission_records SET collected = ? WHERE id = ?').run(
-      newCollected,
-      recordId
-    );
+    if (currentCollected === 1) {
+      // Tandai belum lunas — clear collected_at_sales, recalculate full amount_owed
+      const record = db.prepare('SELECT total_sales, rate_applied FROM commission_records WHERE id = ?').get(recordId) as { total_sales: number; rate_applied: number } | undefined;
+      if (record) {
+        const fullAmountOwed = Math.round((record.total_sales * record.rate_applied) / 100);
+        db.prepare('UPDATE commission_records SET collected = 0, collected_at_sales = NULL, amount_owed = ? WHERE id = ?').run(fullAmountOwed, recordId);
+      } else {
+        db.prepare('UPDATE commission_records SET collected = 0, collected_at_sales = NULL WHERE id = ?').run(recordId);
+      }
+    } else {
+      // Tandai lunas — snapshot total_sales at time of collection
+      const record = db.prepare('SELECT total_sales FROM commission_records WHERE id = ?').get(recordId) as { total_sales: number } | undefined;
+      if (record) {
+        db.prepare('UPDATE commission_records SET collected = 1, collected_at_sales = ? WHERE id = ?').run(record.total_sales, recordId);
+      } else {
+        db.prepare('UPDATE commission_records SET collected = 1 WHERE id = ?').run(recordId);
+      }
+    }
 
     revalidatePath('/admin/komisi');
+    revalidatePath('/admin');
     return { success: true };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Gagal merubah status komisi.';

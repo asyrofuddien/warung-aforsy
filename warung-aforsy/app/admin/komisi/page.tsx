@@ -14,6 +14,7 @@ interface CommissionRow {
   rate_applied: number;
   amount_owed: number;
   collected: number;
+  collected_at_sales: number | null;
 }
 
 export default async function KomisiPage() {
@@ -31,7 +32,8 @@ export default async function KomisiPage() {
       cr.total_sales,
       cr.rate_applied,
       cr.amount_owed,
-      cr.collected
+      cr.collected,
+      cr.collected_at_sales
     FROM commission_records cr
     JOIN stores s ON cr.store_id = s.id
     ORDER BY cr.period DESC, s.name ASC

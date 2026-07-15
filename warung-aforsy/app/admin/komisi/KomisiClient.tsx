@@ -12,6 +12,7 @@ interface CommissionRecord {
   rate_applied: number;
   amount_owed: number;
   collected: number;
+  collected_at_sales: number | null;
 }
 
 interface KomisiClientProps {
@@ -151,7 +152,8 @@ export default function KomisiClient({ records }: KomisiClientProps) {
                 <th>Nama Warung</th>
                 <th>Total Penjualan</th>
                 <th>Tarif Komisi</th>
-                <th>Komisi Owed</th>
+                <th>Komisi Diterima</th>
+                <th>Komisi Pending</th>
                 <th>Status</th>
                 <th>Aksi</th>
               </tr>
@@ -159,37 +161,45 @@ export default function KomisiClient({ records }: KomisiClientProps) {
             <tbody>
               {filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-6 text-meta">
+                  <td colSpan={8} className="text-center py-6 text-meta">
                     Tidak ada laporan komisi yang sesuai dengan filter ini.
                   </td>
                 </tr>
               ) : (
-                filteredRecords.map((r) => (
-                  <tr key={r.id}>
-                    <td className="text-numeral" style={{ fontWeight: 'bold' }}>
-                      {formatPeriodLabel(r.period)}
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{r.store_name}</td>
-                    <td className="text-numeral">Rp {r.total_sales.toLocaleString('id-ID')}</td>
-                    <td className="text-numeral">{r.rate_applied}%</td>
-                    <td className="text-numeral" style={{ fontWeight: 'bold', color: r.collected === 0 ? 'var(--color-signal-red)' : 'var(--color-warung-green)' }}>
-                      Rp {r.amount_owed.toLocaleString('id-ID')}
-                    </td>
-                    <td>
-                      <span className={`badge ${r.collected === 1 ? 'badge--green' : 'badge--marigold'}`}>
-                        {r.collected === 1 ? 'Lunas (Diterima)' : 'Belum Ditagih (Pending)'}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => handleToggleCollected(r)}
-                        className={`btn ${r.collected === 1 ? 'btn-secondary' : 'btn-primary'} btn--sm`}
-                      >
-                        {r.collected === 1 ? 'Tandai Belum Lunas' : 'Tandai Lunas'}
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                filteredRecords.map((r) => {
+                  const collectedAmount = r.collected === 1 && r.collected_at_sales !== null
+                    ? Math.round((r.collected_at_sales * r.rate_applied) / 100)
+                    : 0;
+                  return (
+                    <tr key={r.id}>
+                      <td className="text-numeral" style={{ fontWeight: 'bold' }}>
+                        {formatPeriodLabel(r.period)}
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{r.store_name}</td>
+                      <td className="text-numeral">Rp {r.total_sales.toLocaleString('id-ID')}</td>
+                      <td className="text-numeral">{r.rate_applied}%</td>
+                      <td className="text-numeral" style={{ fontWeight: 'bold', color: collectedAmount > 0 ? 'var(--color-warung-green)' : 'var(--color-muted)' }}>
+                        {collectedAmount > 0 ? `Rp ${collectedAmount.toLocaleString('id-ID')}` : '—'}
+                      </td>
+                      <td className="text-numeral" style={{ fontWeight: 'bold', color: r.collected === 0 ? 'var(--color-signal-red)' : 'var(--color-warung-green)' }}>
+                        Rp {r.amount_owed.toLocaleString('id-ID')}
+                      </td>
+                      <td>
+                        <span className={`badge ${r.collected === 1 ? 'badge--green' : 'badge--marigold'}`}>
+                          {r.collected === 1 ? 'Lunas (Diterima)' : 'Belum Ditagih (Pending)'}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => handleToggleCollected(r)}
+                          className={`btn ${r.collected === 1 ? 'btn-secondary' : 'btn-primary'} btn--sm`}
+                        >
+                          {r.collected === 1 ? 'Tandai Belum Lunas' : 'Tandai Lunas'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

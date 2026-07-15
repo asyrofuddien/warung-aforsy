@@ -108,4 +108,11 @@ try {
   db.exec('ALTER TABLE transactions ADD COLUMN member_id INTEGER REFERENCES members(id) ON DELETE SET NULL');
 }
 
+// Migration: add collected_at_sales to commission_records for partial payment tracking
+try {
+  db.prepare('SELECT collected_at_sales FROM commission_records LIMIT 1').get();
+} catch {
+  db.exec('ALTER TABLE commission_records ADD COLUMN collected_at_sales INTEGER DEFAULT NULL');
+}
+
 export default db;
