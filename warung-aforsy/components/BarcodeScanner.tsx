@@ -69,10 +69,14 @@ export default function BarcodeScanner({ isOpen, onScan, onClose }: BarcodeScann
 
     return () => {
       stopped = true;
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
-        scannerRef.current.clear();
-        scannerRef.current = null;
+      try {
+        if (scannerRef.current) {
+          scannerRef.current.stop().catch(() => {});
+          scannerRef.current.clear();
+          scannerRef.current = null;
+        }
+      } catch {
+        // Scanner already stopped or DOM removed — safe to ignore
       }
     };
   }, [isOpen, onScan]);
