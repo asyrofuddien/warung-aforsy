@@ -101,7 +101,7 @@ export default function AdminClient({ stores }: AdminClientProps) {
   };
 
   const handleCopyLink = (s: Store) => {
-    const url = `${window.location.origin}/store/${s.slug}`;
+    const url = `${window.location.origin}/install/${s.slug}`;
     navigator.clipboard.writeText(url).then(() => {
       toast.success(`Link PWA ${s.name} berhasil disalin!`);
     }).catch(() => {
@@ -117,7 +117,7 @@ export default function AdminClient({ stores }: AdminClientProps) {
           <h1 className="text-heading" style={{ fontSize: '26px' }}>Kelola Warung</h1>
           <p className="text-meta">Daftar warung kelontong mitra platform Warung Aforsy</p>
         </div>
-        
+
         <button className="btn btn-primary" onClick={() => setIsAddOpen(true)}>
           + Daftarkan Warung Baru
         </button>
@@ -168,7 +168,7 @@ export default function AdminClient({ stores }: AdminClientProps) {
             <tbody>
               {stores.length === 0 ? (
                 <tr>
-                    <td colSpan={7} className="text-center py-6 text-meta">
+                  <td colSpan={7} className="text-center py-6 text-meta">
                     Belum ada warung yang didaftarkan. Klik tombol &quot;+ Daftarkan Warung Baru&quot;.
                   </td>
                 </tr>
