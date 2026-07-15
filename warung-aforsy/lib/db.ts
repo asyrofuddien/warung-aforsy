@@ -53,15 +53,27 @@ db.exec(`
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
   );
 
+  CREATE TABLE IF NOT EXISTS members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id INTEGER NOT NULL,
+    phone TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE,
+    UNIQUE(store_id, phone)
+  );
+
   CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     store_id INTEGER NOT NULL,
     person_id INTEGER NOT NULL,
+    member_id INTEGER,
     timestamp TEXT NOT NULL,
     payment_method TEXT NOT NULL CHECK(payment_method IN ('cash', 'qr')),
     total INTEGER NOT NULL,
     FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE,
-    FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE SET NULL
+    FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE SET NULL,
+    FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL
   );
 
   CREATE TABLE IF NOT EXISTS transaction_items (
@@ -88,5 +100,12 @@ db.exec(`
     UNIQUE(store_id, period)
   );
 `);
+
+// Migration: add member_id to transactions if missing (existing DBs)
+try {
+  db.prepare('SELECT member_id FROM transactions LIMIT 1').get();
+} catch {
+  db.exec('ALTER TABLE transactions ADD COLUMN member_id INTEGER REFERENCES members(id) ON DELETE SET NULL');
+}
 
 export default db;

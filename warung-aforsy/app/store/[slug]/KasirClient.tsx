@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, Download, FileImage, MessageCircle } from 'lucide-react';
+import { Camera, Download, FileImage, MessageCircle, User, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import ReceiptDocument from '@/components/ReceiptDocument';
 import { downloadReceiptPDF, downloadReceiptImage, shareReceiptWhatsApp } from '@/lib/receipt';
-import { createTransactionAction } from './actions';
+import { createTransactionAction, findMemberAction, upsertMemberAction, searchMembersAction } from './actions';
 import { toDirectImageUrl } from '@/lib/gdrive';
 
 interface Product {
@@ -24,12 +24,19 @@ interface Category {
   name: string;
 }
 
+interface Member {
+  id: number;
+  phone: string;
+  name: string;
+}
+
 interface ReceiptData {
   transactionId: number | bigint;
   timestamp: string;
   total: number;
   cashierName: string;
   paymentMethod: string;
+  memberId: number | null;
   items: {
     productId: number;
     name: string;
@@ -57,6 +64,14 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
   const [error, setError] = useState<string | null>(null);
   
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+
+  // Member state
+  const [memberPhone, setMemberPhone] = useState('');
+  const [memberName, setMemberName] = useState('');
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [isMemberSearchOpen, setIsMemberSearchOpen] = useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+  const [memberSearchResults, setMemberSearchResults] = useState<Member[]>([]);
 
   // Barcode scanner
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -90,6 +105,55 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
     }
   }, [products, addToCart]);
 
+  // ---------- MEMBER FUNCTIONS ----------
+
+  const handleMemberPhoneBlur = async () => {
+    const phone = memberPhone.trim();
+    if (!phone) return;
+
+    try {
+      const result = await findMemberAction(storeId, phone);
+      if (result.success) {
+        if (result.member && !result.isNew) {
+          setSelectedMember(result.member);
+          setMemberName(result.member.name);
+          toast.success(`Member ditemukan: ${result.member.name || phone}`);
+        } else {
+          setSelectedMember(null);
+          setMemberName('');
+        }
+      }
+    } catch { /* empty */ }
+  };
+
+  const handleMemberSearch = async (query: string) => {
+    setMemberSearchQuery(query);
+    if (query.length < 2) {
+      setMemberSearchResults([]);
+      return;
+    }
+    const result = await searchMembersAction(storeId, query);
+    if (result.success) {
+      setMemberSearchResults(result.members);
+    }
+  };
+
+  const handleSelectMember = (member: Member) => {
+    setSelectedMember(member);
+    setMemberPhone(member.phone);
+    setMemberName(member.name);
+    setIsMemberSearchOpen(false);
+    setMemberSearchQuery('');
+    setMemberSearchResults([]);
+    toast.success(`Member dipilih: ${member.name || member.phone}`);
+  };
+
+  const clearMember = () => {
+    setSelectedMember(null);
+    setMemberPhone('');
+    setMemberName('');
+  };
+
   const removeFromCart = (productId: number) => {
     setCart((prev) => {
       const updated = { ...prev };
@@ -115,6 +179,7 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
     setIsCartOpen(false);
     setIsCheckoutOpen(false);
     setReceipt(null);
+    clearMember();
   };
 
   // Focus search input on mount
@@ -155,12 +220,26 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
     setLoading(true);
     setError(null);
 
+    // Save member if phone entered but not yet saved
+    let activeMemberId: number | null = null;
+    if (memberPhone.trim()) {
+      if (selectedMember) {
+        activeMemberId = selectedMember.id;
+      } else {
+        const memberResult = await upsertMemberAction(storeId, memberPhone.trim(), memberName.trim());
+        if (memberResult.success && memberResult.member) {
+          activeMemberId = memberResult.member.id;
+          setSelectedMember(memberResult.member);
+        }
+      }
+    }
+
     const itemsInput = Object.entries(cart).map(([productId, quantity]) => ({
       productId: parseInt(productId, 10),
       quantity,
     }));
 
-    const response = await createTransactionAction(storeId, itemsInput, paymentMethod);
+    const response = await createTransactionAction(storeId, itemsInput, paymentMethod, activeMemberId);
 
     if (response.success && response.data) {
       setReceipt(response.data as ReceiptData);
@@ -503,6 +582,56 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
               </div>
             )}
 
+            {/* Member Input */}
+            <div className="p-3 rounded-lg mb-4" style={{ background: 'var(--color-white)', border: '1px solid var(--color-line)' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <User size={14} style={{ color: 'var(--color-warung-green)' }} />
+                <span className="text-meta" style={{ fontWeight: 600, fontSize: '12px' }}>Member (Opsional)</span>
+              </div>
+
+              {selectedMember ? (
+                <div className="flex items-center justify-between p-2 rounded-md" style={{ background: 'rgba(15, 122, 92, 0.06)' }}>
+                  <div>
+                    <span className="text-body" style={{ fontWeight: 600, fontSize: '13px' }}>{selectedMember.name || selectedMember.phone}</span>
+                    {selectedMember.name && <span className="text-meta" style={{ fontSize: '11px', display: 'block' }}>{selectedMember.phone}</span>}
+                  </div>
+                  <button onClick={clearMember} className="btn btn-ghost btn--sm" style={{ padding: '4px', minHeight: 'auto' }}>
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="tel"
+                    placeholder="Nomor HP member"
+                    value={memberPhone}
+                    onChange={(e) => setMemberPhone(e.target.value)}
+                    onBlur={handleMemberPhoneBlur}
+                    className="input flex-1"
+                    style={{ minHeight: '40px', fontSize: '13px' }}
+                  />
+                  <button
+                    onClick={() => setIsMemberSearchOpen(true)}
+                    className="btn btn-secondary"
+                    style={{ minWidth: '40px', justifyContent: 'center' }}
+                  >
+                    <Search size={16} />
+                  </button>
+                </div>
+              )}
+
+              {!selectedMember && memberPhone && (
+                <input
+                  type="text"
+                  placeholder="Nama member (opsional)"
+                  value={memberName}
+                  onChange={(e) => setMemberName(e.target.value)}
+                  className="input mt-2"
+                  style={{ minHeight: '36px', fontSize: '12px' }}
+                />
+              )}
+            </div>
+
             {/* Payment Method Toggle (§7) */}
             <div className="payment-tabs my-4">
               <button
@@ -647,21 +776,23 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
 
             {/* Action Buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              <button
-                className="btn btn-primary btn--full"
-                onClick={async () => {
-                  try {
-                    const el = document.getElementById('receipt-document');
-                    if (el) await shareReceiptWhatsApp(el, storeName, receipt.transactionId);
-                  } catch {
-                    toast.error('Gagal membagikan nota.');
-                  }
-                }}
-                style={{ justifyContent: 'center', gap: '8px', minHeight: '48px' }}
-              >
-                <MessageCircle size={18} />
-                Share WhatsApp
-              </button>
+              {receipt.memberId && (
+                <button
+                  className="btn btn-primary btn--full"
+                  onClick={async () => {
+                    try {
+                      const el = document.getElementById('receipt-document');
+                      if (el) await shareReceiptWhatsApp(el, storeName, receipt.transactionId);
+                    } catch {
+                      toast.error('Gagal membagikan nota.');
+                    }
+                  }}
+                  style={{ justifyContent: 'center', gap: '8px', minHeight: '48px' }}
+                >
+                  <MessageCircle size={18} />
+                  Share WhatsApp
+                </button>
+              )}
 
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 <button
@@ -705,6 +836,58 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
               >
                 Selesai & Tutup
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Member Search Modal */}
+      {isMemberSearchOpen && (
+        <div className="overlay overlay-enter" onClick={() => { setIsMemberSearchOpen(false); setMemberSearchQuery(''); setMemberSearchResults([]); }}>
+          <div
+            className="modal modal-enter"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '480px' }}
+          >
+            <div className="modal__handle"></div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-heading">Cari Member</h3>
+              <button className="btn btn-ghost btn--sm" onClick={() => { setIsMemberSearchOpen(false); setMemberSearchQuery(''); setMemberSearchResults([]); }}>
+                Tutup
+              </button>
+            </div>
+
+            <input
+              type="text"
+              placeholder="Ketik nama atau nomor HP..."
+              value={memberSearchQuery}
+              onChange={(e) => handleMemberSearch(e.target.value)}
+              className="input mb-4"
+              autoFocus
+              style={{ minHeight: '44px' }}
+            />
+
+            <div className="stack stack--2" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+              {memberSearchResults.length === 0 ? (
+                <div className="text-meta text-center py-6" style={{ color: 'var(--color-muted-ink)' }}>
+                  {memberSearchQuery.length < 2 ? 'Ketik minimal 2 karakter untuk mencari...' : 'Member tidak ditemukan.'}
+                </div>
+              ) : (
+                memberSearchResults.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => handleSelectMember(m)}
+                    className="flex items-center justify-between p-3 border rounded-md bg-white text-left"
+                    style={{ cursor: 'pointer', width: '100%' }}
+                  >
+                    <div>
+                      <div className="text-body" style={{ fontWeight: 600, fontSize: '14px' }}>{m.name || '(Tanpa Nama)'}</div>
+                      <div className="text-meta" style={{ fontSize: '12px' }}>{m.phone}</div>
+                    </div>
+                    <User size={16} style={{ color: 'var(--color-warung-green)' }} />
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>

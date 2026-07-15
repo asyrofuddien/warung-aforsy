@@ -24,7 +24,7 @@ export default function BottomNav({ slug }: BottomNavProps) {
         {/* Kasir Tab */}
         <Link
           href={`/store/${slug}`}
-          className={`bottom-nav__item ${isActive(`/store/${slug}`) && !pathname.includes('/produk') && !pathname.includes('/riwayat') ? 'bottom-nav__item--active' : ''}`}
+          className={`bottom-nav__item ${isActive(`/store/${slug}`) && !pathname.includes('/produk') && !pathname.includes('/riwayat') && !pathname.includes('/member') ? 'bottom-nav__item--active' : ''}`}
         >
           <svg
             className="bottom-nav__icon"
@@ -84,6 +84,29 @@ export default function BottomNav({ slug }: BottomNavProps) {
             <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5" />
           </svg>
           <span className="bottom-nav__label">Riwayat</span>
+        </Link>
+
+        {/* Member Tab */}
+        <Link
+          href={`/store/${slug}/member`}
+          className={`bottom-nav__item ${isActive(`/store/${slug}/member`) ? 'bottom-nav__item--active' : ''}`}
+        >
+          <svg
+            className="bottom-nav__icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          <span className="bottom-nav__label">Member</span>
         </Link>
       </div>
     </nav>

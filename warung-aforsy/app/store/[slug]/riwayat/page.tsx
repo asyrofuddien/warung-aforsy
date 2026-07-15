@@ -10,6 +10,9 @@ interface TransactionRow {
   total: number;
   cashier_name: string;
   cashier_id: number;
+  member_id: number | null;
+  member_name: string | null;
+  member_phone: string | null;
 }
 
 interface TransactionItemRow {
@@ -51,9 +54,11 @@ export default async function RiwayatPage({ params }: RiwayatPageProps) {
 
   // 2. Fetch transactions list
   const transactions = db.prepare(`
-    SELECT t.id, t.timestamp, t.payment_method, t.total, p.name as cashier_name, p.id as cashier_id
+    SELECT t.id, t.timestamp, t.payment_method, t.total, p.name as cashier_name, p.id as cashier_id,
+           t.member_id, m.name as member_name, m.phone as member_phone
     FROM transactions t
     LEFT JOIN persons p ON t.person_id = p.id
+    LEFT JOIN members m ON t.member_id = m.id
     WHERE t.store_id = ?
     ORDER BY t.timestamp DESC
   `).all(storeId) as TransactionRow[];

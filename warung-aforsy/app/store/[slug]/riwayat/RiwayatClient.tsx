@@ -13,6 +13,9 @@ interface Transaction {
   total: number;
   cashier_name: string;
   cashier_id: number;
+  member_id: number | null;
+  member_name: string | null;
+  member_phone: string | null;
 }
 
 interface TransactionItem {
@@ -160,6 +163,11 @@ export default function RiwayatClient({
                 <div className="text-meta mt-1">
                   {formatIndoDate(tx.timestamp)} &bull; {tx.cashier_name}
                 </div>
+                {tx.member_name && (
+                  <div className="text-meta" style={{ fontSize: '11px', color: 'var(--color-warung-green)', fontWeight: 600, marginTop: '2px' }}>
+                    Member: {tx.member_name}
+                  </div>
+                )}
               </div>
 
               <div className="text-right">
@@ -211,21 +219,23 @@ export default function RiwayatClient({
 
             {/* Action Buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              <button
-                className="btn btn-primary btn--full"
-                onClick={async () => {
-                  try {
-                    const el = document.getElementById('receipt-document');
-                    if (el) await shareReceiptWhatsApp(el, storeName, selectedTx.id);
-                  } catch {
-                    toast.error('Gagal membagikan nota.');
-                  }
-                }}
-                style={{ justifyContent: 'center', gap: '8px', minHeight: '48px' }}
-              >
-                <MessageCircle size={18} />
-                Share WhatsApp
-              </button>
+              {selectedTx.member_id && (
+                <button
+                  className="btn btn-primary btn--full"
+                  onClick={async () => {
+                    try {
+                      const el = document.getElementById('receipt-document');
+                      if (el) await shareReceiptWhatsApp(el, storeName, selectedTx.id);
+                    } catch {
+                      toast.error('Gagal membagikan nota.');
+                    }
+                  }}
+                  style={{ justifyContent: 'center', gap: '8px', minHeight: '48px' }}
+                >
+                  <MessageCircle size={18} />
+                  Share WhatsApp
+                </button>
+              )}
 
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 <button

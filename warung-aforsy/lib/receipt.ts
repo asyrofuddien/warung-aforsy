@@ -42,18 +42,22 @@ export async function downloadReceiptPDF(element: HTMLElement, filename: string,
   if (storeName) {
     const watermarkText = storeName.toUpperCase();
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
+    pdf.setFontSize(10);
     pdf.setTextColor(200, 190, 170);
 
-    const centerX = 80 / 2;
-    const centerY = pdfHeight / 2;
+    const textWidth = pdf.getTextWidth(watermarkText);
+    const spacingX = textWidth + 20;
+    const spacingY = 25;
 
     pdf.saveGraphicsState();
-    pdf.setGState(pdf.GState({ opacity: 0.15 }));
-    pdf.text(watermarkText, centerX, centerY, {
-      align: "center",
-      angle: 45,
-    });
+    pdf.setGState(pdf.GState({ opacity: 0.12 }));
+
+    for (let y = -pdfHeight; y < pdfHeight * 2; y += spacingY) {
+      for (let x = -20; x < 100; x += spacingX) {
+        pdf.text(watermarkText, x, y, { angle: 45 });
+      }
+    }
+
     pdf.restoreGraphicsState();
   }
 
