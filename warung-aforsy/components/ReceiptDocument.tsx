@@ -27,7 +27,8 @@ function formatDate(isoStr: string): string {
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).replace(/\//g, "-");
+      timeZone: "Asia/Jakarta",
+    }).replace(/\//g, "-") + " WIB";
   } catch {
     return isoStr;
   }

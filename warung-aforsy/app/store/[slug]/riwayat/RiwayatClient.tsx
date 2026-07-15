@@ -73,7 +73,8 @@ export default function RiwayatClient({
         year: 'numeric',
         hour: includeTime ? '2-digit' : undefined,
         minute: includeTime ? '2-digit' : undefined,
-      }).replace(/\//g, '-');
+        timeZone: 'Asia/Jakarta',
+      }).replace(/\//g, '-') + (includeTime ? ' WIB' : '');
     } catch {
       return isoStr;
     }
