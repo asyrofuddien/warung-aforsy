@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, Download, FileImage, MessageCircle, User, Search, X } from 'lucide-react';
+import { Camera, Download, FileImage, MessageCircle, User, X, Loader2 } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { toast } from 'sonner';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import ReceiptDocument from '@/components/ReceiptDocument';
@@ -69,6 +70,8 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
   const [memberPhone, setMemberPhone] = useState('');
   const [memberName, setMemberName] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [memberSearching, setMemberSearching] = useState(false);
+  const debouncedMemberPhone = useDebounce(memberPhone, 300);
 
   // Barcode scanner
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -104,26 +107,33 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
 
   // ---------- MEMBER FUNCTIONS ----------
 
-  const handleMemberSearch = async () => {
-    const phone = memberPhone.trim();
-    if (!phone) {
-      toast.warning('Masukkan nomor HP terlebih dahulu.');
-      return;
-    }
-
-    const result = await findMemberAction(storeId, phone);
-    if (result.success) {
-      if (result.member && !result.isNew) {
-        setSelectedMember(result.member);
-        setMemberName(result.member.name);
-        toast.success(`Member ditemukan: ${result.member.name || phone}`);
-      } else {
+  useEffect(() => {
+    const searchMember = async () => {
+      const phone = debouncedMemberPhone.trim();
+      if (!phone) {
         setSelectedMember(null);
-        setMemberName('');
-        toast.info(`Nomor ${phone} belum terdaftar. Akan otomatis menjadi member baru.`);
+        setMemberSearching(false);
+        return;
       }
-    }
-  };
+
+      setMemberSearching(true);
+      const result = await findMemberAction(storeId, phone);
+      setMemberSearching(false);
+
+      if (result.success) {
+        if (result.member && !result.isNew) {
+          setSelectedMember(result.member);
+          setMemberName(result.member.name);
+          toast.success(`Member ditemukan: ${result.member.name || phone}`);
+        } else {
+          setSelectedMember(null);
+          setMemberName('');
+        }
+      }
+    };
+
+    searchMember();
+  }, [debouncedMemberPhone, storeId]);
 
   const clearMember = () => {
     setSelectedMember(null);
@@ -577,7 +587,7 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <input
                     type="tel"
                     placeholder="Nomor HP member"
@@ -586,13 +596,13 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
                     className="input flex-1"
                     style={{ minHeight: '40px', fontSize: '13px' }}
                   />
-                  <button
-                    onClick={handleMemberSearch}
-                    className="btn btn-secondary"
-                    style={{ minWidth: '40px', justifyContent: 'center' }}
-                  >
-                    <Search size={16} />
-                  </button>
+                  {memberSearching && (
+                    <Loader2
+                      size={16}
+                      className="animate-spin"
+                      style={{ color: 'var(--color-warung-green)' }}
+                    />
+                  )}
                 </div>
               )}
 
