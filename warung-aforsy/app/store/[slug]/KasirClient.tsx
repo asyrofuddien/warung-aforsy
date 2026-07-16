@@ -250,6 +250,8 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
     const response = await createTransactionAction(storeId, itemsInput, paymentMethod, activeMemberId);
 
     if (response.success && response.data) {
+      await new Promise((r) => setTimeout(r, 1000));
+      toast.success('Pembayaran berhasil!');
       setReceipt(response.data as ReceiptData);
       setIsCheckoutOpen(false);
       setIsCartOpen(false);
