@@ -32,6 +32,15 @@ export async function findMemberAction(storeId: number, query: string) {
       'SELECT id, phone, name FROM members WHERE store_id = ? AND (phone LIKE ? OR name LIKE ?) ORDER BY name ASC LIMIT 10'
     ).all(storeId, q, q) as { id: number; phone: string; name: string }[];
 
+    logActivity({
+      storeId,
+      personId: session.personId,
+      action: 'search_member',
+      entityType: 'member',
+      request: { query: trimmed },
+      response: { count: members.length, members },
+    });
+
     return { success: true, members };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Gagal mencari member.';
@@ -67,7 +76,15 @@ export async function upsertMemberAction(storeId: number, phone: string, name: s
     ).run(storeId, trimmedPhone, trimmedName);
 
     const member = { id: result.lastInsertRowid as number, phone: trimmedPhone, name: trimmedName };
-    logActivity({ storeId, personId: session.personId, action: 'create_member', entityType: 'member', entityId: member.id, details: { phone: trimmedPhone, name: trimmedName } });
+    logActivity({
+      storeId,
+      personId: session.personId,
+      action: 'create_member',
+      entityType: 'member',
+      entityId: member.id,
+      request: { phone: trimmedPhone, name: trimmedName },
+      response: { id: member.id, phone: member.phone, name: member.name },
+    });
     return { success: true, member };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Gagal menyimpan member.';
@@ -356,7 +373,8 @@ export async function createTransactionAction(
       action: 'create_transaction',
       entityType: 'transaction',
       entityId: result.transactionId as number,
-      details: { total: result.total, paymentMethod, itemCount: items.length, memberId: memberId ?? null },
+      request: { paymentMethod, itemCount: items.length, memberId: memberId ?? null, items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })) },
+      response: { transactionId: result.transactionId, total: result.total, cashierName: result.cashierName, paymentMethod: result.paymentMethod, items: result.items.map((i) => ({ name: i.name, price: i.price, quantity: i.quantity })) },
     });
 
     const storeRow = db.prepare('SELECT slug FROM stores WHERE id = ?').get(storeId) as { slug: string };

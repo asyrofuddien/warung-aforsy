@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { toast } from 'sonner';
 
 interface Activity {
   id: number;
@@ -66,6 +67,7 @@ interface MonitorClientProps {
 const ACTION_LABELS: Record<string, string> = {
   login: 'Login',
   login_failed: 'Login Gagal',
+  search_member: 'Cari Member',
   create_transaction: 'Transaksi Baru',
   create_member: 'Member Baru',
   update_member: 'Update Member',
@@ -84,6 +86,7 @@ const ACTION_LABELS: Record<string, string> = {
 const ACTION_COLORS: Record<string, string> = {
   login: 'var(--color-warung-green)',
   login_failed: 'var(--color-signal-red)',
+  search_member: '#6b7280',
   create_transaction: 'var(--color-warung-green)',
   create_member: '#3b82f6',
   update_member: '#f59e0b',
@@ -99,6 +102,80 @@ const ACTION_COLORS: Record<string, string> = {
   delete_category: 'var(--color-signal-red)',
 };
 
+const ITEMS_PER_PAGE = 20;
+
+function JsonBlock({ label, data }: { label: string; data: string }) {
+  const [copied, setCopied] = useState(false);
+
+  let formatted = data;
+  try {
+    formatted = JSON.stringify(JSON.parse(data), null, 2);
+  } catch {
+    // keep original
+  }
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(formatted);
+      setCopied(true);
+      toast.success('Berhasil dicopy!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Gagal copy');
+    }
+  };
+
+  return (
+    <div className="mt-2 rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-line)' }}>
+      <div
+        className="flex justify-between items-center px-3 py-1"
+        style={{ background: '#1e1e2e', borderBottom: '1px solid #313244' }}
+      >
+        <span style={{ color: '#a6adc8', fontSize: '11px', fontWeight: 600 }}>{label}</span>
+        <button
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: copied ? '#a6e3a1' : '#a6adc8',
+            fontSize: '11px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '2px 6px',
+            borderRadius: '4px',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = '#313244')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+      <pre
+        style={{
+          background: '#11111b',
+          color: '#cdd6f4',
+          padding: '12px',
+          margin: 0,
+          fontSize: '11px',
+          lineHeight: '1.5',
+          overflowX: 'auto',
+          fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
+          maxHeight: '200px',
+          overflowY: 'auto',
+        }}
+      >
+        {formatted}
+      </pre>
+    </div>
+  );
+}
+
 export default function MonitorClient({
   stores,
   initialActivities,
@@ -111,6 +188,8 @@ export default function MonitorClient({
   const [filterStore, setFilterStore] = useState<number | 'all'>('all');
   const [filterAction, setFilterAction] = useState<string | 'all'>('all');
   const [activeTab, setActiveTab] = useState<'activity' | 'cashier' | 'sales' | 'member'>('activity');
+  const [page, setPage] = useState(1);
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
   const uniqueActions = useMemo(() => Array.from(new Set(initialActivities.map((a) => a.action))).sort(), [initialActivities]);
 
@@ -122,6 +201,21 @@ export default function MonitorClient({
     });
   }, [initialActivities, filterStore, filterAction]);
 
+  const totalPages = Math.ceil(filteredActivities.length / ITEMS_PER_PAGE);
+  const paginatedActivities = useMemo(() => {
+    const start = (page - 1) * ITEMS_PER_PAGE;
+    return filteredActivities.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredActivities, page]);
+
+  const toggleExpand = useCallback((id: number) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   const totalTransactions = dailyTotals.reduce((sum, d) => sum + d.count, 0);
   const totalRevenue = dailyTotals.reduce((sum, d) => sum + d.revenue, 0);
   const maxHourlyCount = Math.max(...hourlyStats.map((h) => h.count), 1);
@@ -130,9 +224,18 @@ export default function MonitorClient({
   const formatTimestamp = (ts: string) => {
     try {
       const d = new Date(ts);
-      return d.toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+      return d.toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' });
     } catch {
       return ts;
+    }
+  };
+
+  const parseDetails = (json: string | null): { request?: unknown; response?: unknown; details?: unknown } | null => {
+    if (!json) return null;
+    try {
+      return JSON.parse(json);
+    } catch {
+      return null;
     }
   };
 
@@ -168,7 +271,7 @@ export default function MonitorClient({
           <div className="flex gap-2 mb-4 flex-wrap">
             <select
               value={filterStore}
-              onChange={(e) => setFilterStore(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              onChange={(e) => { setFilterStore(e.target.value === 'all' ? 'all' : Number(e.target.value)); setPage(1); }}
               className="input"
               style={{ minHeight: '36px', fontSize: '13px' }}
             >
@@ -179,7 +282,7 @@ export default function MonitorClient({
             </select>
             <select
               value={filterAction}
-              onChange={(e) => setFilterAction(e.target.value)}
+              onChange={(e) => { setFilterAction(e.target.value); setPage(1); }}
               className="input"
               style={{ minHeight: '36px', fontSize: '13px' }}
             >
@@ -192,56 +295,120 @@ export default function MonitorClient({
           </div>
 
           {/* Activity List */}
-          <div className="stack stack--2" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-            {filteredActivities.length === 0 ? (
+          <div className="stack stack--2">
+            {paginatedActivities.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state__title">Belum ada aktivitas</div>
                 <div className="empty-state__text">Aktivitas akan tercatat saat ada transaksi, login, atau perubahan data.</div>
               </div>
             ) : (
-              filteredActivities.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex items-start gap-3 p-3 rounded-lg"
-                  style={{ background: 'var(--color-white)', border: '1px solid var(--color-line)' }}
-                >
+              paginatedActivities.map((a) => {
+                const isExpanded = expandedIds.has(a.id);
+                const parsed = parseDetails(a.details);
+                const hasDetails = parsed && (parsed.request || parsed.response || parsed.details);
+
+                return (
                   <div
-                    style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: ACTION_COLORS[a.action] || '#6b7280',
-                      marginTop: '6px',
-                      flexShrink: 0,
-                    }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-body" style={{ fontWeight: 600, fontSize: '13px' }}>
-                        {formatAction(a.action)}
+                    key={a.id}
+                    className="rounded-lg overflow-hidden"
+                    style={{ background: 'var(--color-white)', border: '1px solid var(--color-line)' }}
+                  >
+                    <div
+                      className="flex items-start gap-3 p-3"
+                      style={{ cursor: hasDetails ? 'pointer' : 'default' }}
+                      onClick={() => hasDetails && toggleExpand(a.id)}
+                    >
+                      <div
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: ACTION_COLORS[a.action] || '#6b7280',
+                          marginTop: '6px',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-body" style={{ fontWeight: 600, fontSize: '13px' }}>
+                            {formatAction(a.action)}
+                          </span>
+                          {a.entity_type && a.entity_id && (
+                            <span className="text-meta" style={{ fontSize: '11px' }}>
+                              {a.entity_type}#{a.entity_id}
+                            </span>
+                          )}
+                          {hasDetails && (
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              style={{
+                                color: 'var(--color-muted-ink)',
+                                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s',
+                              }}
+                            >
+                              <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="text-meta" style={{ fontSize: '11px', marginTop: '2px' }}>
+                          {a.person_name || 'System'} {a.store_name && `di ${a.store_name}`}
+                        </div>
+                      </div>
+                      <span className="text-meta" style={{ fontSize: '11px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        {formatTimestamp(a.timestamp)}
                       </span>
-                      {a.entity_type && a.entity_id && (
-                        <span className="text-meta" style={{ fontSize: '11px' }}>
-                          {a.entity_type}#{a.entity_id}
-                        </span>
-                      )}
                     </div>
-                    <div className="text-meta" style={{ fontSize: '11px', marginTop: '2px' }}>
-                      {a.person_name || 'System'} {a.store_name && `di ${a.store_name}`}
-                    </div>
-                    {a.details && (
-                      <div className="text-meta" style={{ fontSize: '11px', marginTop: '2px', wordBreak: 'break-all' }}>
-                        {a.details}
+
+                    {/* Expanded Details */}
+                    {isExpanded && parsed && (
+                      <div className="px-3 pb-3" style={{ borderTop: '1px solid var(--color-line)' }}>
+                        {parsed.request && (
+                          <JsonBlock label="Request" data={JSON.stringify(parsed.request)} />
+                        )}
+                        {parsed.response && (
+                          <JsonBlock label="Response" data={JSON.stringify(parsed.response)} />
+                        )}
+                        {!parsed.request && !parsed.response && parsed.details && (
+                          <JsonBlock label="Details" data={JSON.stringify(parsed.details)} />
+                        )}
                       </div>
                     )}
                   </div>
-                  <span className="text-meta" style={{ fontSize: '11px', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    {formatTimestamp(a.timestamp)}
-                  </span>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-4">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="btn btn-secondary btn--sm"
+                style={{ minWidth: '36px', minHeight: '36px', padding: 0 }}
+              >
+                &lsaquo;
+              </button>
+              <span className="text-meta" style={{ fontSize: '13px' }}>
+                {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="btn btn-secondary btn--sm"
+                style={{ minWidth: '36px', minHeight: '36px', padding: 0 }}
+              >
+                &rsaquo;
+              </button>
+            </div>
+          )}
         </div>
       )}
 

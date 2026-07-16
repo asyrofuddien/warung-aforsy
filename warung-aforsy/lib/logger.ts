@@ -7,23 +7,31 @@ export interface LogOptions {
   entityType?: string | null;
   entityId?: number | null;
   details?: Record<string, unknown> | null;
+  request?: Record<string, unknown> | null;
+  response?: Record<string, unknown> | null;
 }
 
 export function logActivity(options: LogOptions): void {
-  const { storeId = null, personId = null, action, entityType = null, entityId = null, details = null } = options;
+  const { storeId = null, personId = null, action, entityType = null, entityId = null, details = null, request = null, response = null } = options;
+
+  const payload: Record<string, unknown> = {};
+  if (details) payload.details = details;
+  if (request) payload.request = request;
+  if (response) payload.response = response;
+  const detailsJson = Object.keys(payload).length > 0 ? JSON.stringify(payload) : null;
 
   try {
     db.prepare(
       `INSERT INTO activity_logs (store_id, person_id, action, entity_type, entity_id, details)
        VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(storeId, personId, action, entityType, entityId, details ? JSON.stringify(details) : null);
+    ).run(storeId, personId, action, entityType, entityId, detailsJson);
 
     const ts = new Date().toISOString();
     const parts = [`[ACTIVITY] ${ts}`, `action=${action}`];
     if (storeId) parts.push(`store=${storeId}`);
     if (personId) parts.push(`person=${personId}`);
     if (entityType && entityId) parts.push(`${entityType}#${entityId}`);
-    if (details) parts.push(JSON.stringify(details));
+    if (detailsJson) parts.push(detailsJson);
     console.log(parts.join(' | '));
   } catch (err) {
     console.error('[ACTIVITY] Failed to log:', err instanceof Error ? err.message : err);
