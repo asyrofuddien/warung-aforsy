@@ -16,27 +16,25 @@ export interface CartItemInput {
 
 // ---------- MEMBER ACTIONS ----------
 
-export async function findMemberAction(storeId: number, phone: string) {
+export async function findMemberAction(storeId: number, query: string) {
   try {
     const session = await getStoreSession();
     if (!session || session.storeId !== storeId) {
       return { success: false, error: 'Sesi tidak valid.' };
     }
 
-    const trimmed = phone.trim();
-    if (!trimmed) return { success: false, error: 'Nomor HP harus diisi.' };
+    const trimmed = query.trim();
+    if (!trimmed) return { success: true, members: [] };
 
-    const member = db.prepare(
-      'SELECT id, phone, name, created_at FROM members WHERE store_id = ? AND phone = ?'
-    ).get(storeId, trimmed) as { id: number; phone: string; name: string; created_at: string } | undefined;
+    const q = `%${trimmed}%`;
+    const members = db.prepare(
+      'SELECT id, phone, name FROM members WHERE store_id = ? AND (phone LIKE ? OR name LIKE ?) ORDER BY name ASC LIMIT 10'
+    ).all(storeId, q, q) as { id: number; phone: string; name: string }[];
 
-    if (member) {
-      return { success: true, member, isNew: false };
-    }
-    return { success: true, member: null, isNew: true };
+    return { success: true, members };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Gagal mencari member.';
-    return { success: false, error: message };
+    return { success: false, error: message, members: [] };
   }
 }
 

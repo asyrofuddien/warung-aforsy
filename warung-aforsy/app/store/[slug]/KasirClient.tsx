@@ -71,6 +71,8 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
   const [memberName, setMemberName] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [memberSearching, setMemberSearching] = useState(false);
+  const [memberResults, setMemberResults] = useState<Member[]>([]);
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const debouncedMemberPhone = useDebounce(memberPhone, 300);
 
   // Barcode scanner
@@ -109,26 +111,35 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
 
   useEffect(() => {
     const searchMember = async () => {
-      const phone = debouncedMemberPhone.trim();
-      if (!phone) {
+      const q = debouncedMemberPhone.trim();
+      if (!q || q.length < 2) {
         setSelectedMember(null);
+        setMemberResults([]);
+        setShowMemberDropdown(false);
         setMemberSearching(false);
         return;
       }
 
       setMemberSearching(true);
-      const result = await findMemberAction(storeId, phone);
+      const result = await findMemberAction(storeId, q);
       setMemberSearching(false);
 
-      if (result.success) {
-        if (result.member && !result.isNew) {
-          setSelectedMember(result.member);
-          setMemberName(result.member.name);
-          toast.success(`Member ditemukan: ${result.member.name || phone}`);
+      if (result.success && result.members) {
+        if (result.members.length === 1 && result.members[0].phone === q) {
+          setSelectedMember(result.members[0]);
+          setMemberName(result.members[0].name);
+          setMemberResults([]);
+          setShowMemberDropdown(false);
+          toast.success(`Member ditemukan: ${result.members[0].name || q}`);
         } else {
           setSelectedMember(null);
           setMemberName('');
+          setMemberResults(result.members);
+          setShowMemberDropdown(result.members.length > 0);
         }
+      } else {
+        setMemberResults([]);
+        setShowMemberDropdown(false);
       }
     };
 
@@ -139,6 +150,16 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
     setSelectedMember(null);
     setMemberPhone('');
     setMemberName('');
+    setMemberResults([]);
+    setShowMemberDropdown(false);
+  };
+
+  const selectMember = (member: Member) => {
+    setSelectedMember(member);
+    setMemberPhone(member.phone);
+    setMemberName(member.name);
+    setMemberResults([]);
+    setShowMemberDropdown(false);
   };
 
   const removeFromCart = (productId: number) => {
@@ -587,12 +608,18 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-2 items-center">
+                <div className="relative flex gap-2 items-center">
                   <input
                     type="tel"
-                    placeholder="Nomor HP member"
+                    placeholder="Nomor HP / nama member"
                     value={memberPhone}
-                    onChange={(e) => setMemberPhone(e.target.value)}
+                    onChange={(e) => {
+                      setMemberPhone(e.target.value);
+                      setShowMemberDropdown(false);
+                    }}
+                    onFocus={() => {
+                      if (memberResults.length > 0) setShowMemberDropdown(true);
+                    }}
                     className="input flex-1"
                     style={{ minHeight: '40px', fontSize: '13px' }}
                   />
@@ -603,10 +630,40 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
                       style={{ color: 'var(--color-warung-green)' }}
                     />
                   )}
+                  {showMemberDropdown && memberResults.length > 0 && (
+                    <div
+                      className="absolute left-0 right-0 top-full mt-1 rounded-lg overflow-hidden"
+                      style={{
+                        background: 'var(--color-white)',
+                        border: '1px solid var(--color-line)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        zIndex: 50,
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {memberResults.map((m) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => selectMember(m)}
+                          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex flex-col"
+                          style={{ borderBottom: '1px solid var(--color-line)' }}
+                        >
+                          <span className="text-body" style={{ fontWeight: 600, fontSize: '13px' }}>
+                            {m.name || m.phone}
+                          </span>
+                          <span className="text-meta" style={{ fontSize: '11px' }}>
+                            {m.phone}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {!selectedMember && memberPhone && (
+              {!selectedMember && memberPhone && !showMemberDropdown && (
                 <input
                   type="text"
                   placeholder="Nama member (opsional)"
