@@ -230,10 +230,10 @@ export default function MonitorClient({
     }
   };
 
-  const parseDetails = (json: string | null): { request?: unknown; response?: unknown; details?: unknown } | null => {
+  const parseDetails = (json: string | null): { request?: Record<string, unknown>; response?: Record<string, unknown>; details?: Record<string, unknown> } | null => {
     if (!json) return null;
     try {
-      return JSON.parse(json);
+      return JSON.parse(json) as { request?: Record<string, unknown>; response?: Record<string, unknown>; details?: Record<string, unknown> };
     } catch {
       return null;
     }
@@ -305,7 +305,7 @@ export default function MonitorClient({
               paginatedActivities.map((a) => {
                 const isExpanded = expandedIds.has(a.id);
                 const parsed = parseDetails(a.details);
-                const hasDetails = parsed && (parsed.request || parsed.response || parsed.details);
+                const hasDetails = !!(parsed && (parsed.request || parsed.response || parsed.details));
 
                 return (
                   <div
