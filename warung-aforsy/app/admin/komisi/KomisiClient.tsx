@@ -45,8 +45,8 @@ export default function KomisiClient({ records }: KomisiClientProps) {
   const totalSalesFiltered = filteredRecords.reduce((acc, curr) => acc + curr.total_sales, 0);
   const totalOwedFiltered = filteredRecords.reduce((acc, curr) => acc + curr.amount_owed, 0);
   const totalCollectedFiltered = filteredRecords
-    .filter((r) => r.collected === 1)
-    .reduce((acc, curr) => acc + curr.amount_owed, 0);
+    .filter((r) => r.collected_at_sales !== null)
+    .reduce((acc, curr) => acc + Math.round((curr.collected_at_sales! * curr.rate_applied) / 100), 0);
   const totalPendingFiltered = filteredRecords
     .filter((r) => r.collected === 0)
     .reduce((acc, curr) => acc + curr.amount_owed, 0);
