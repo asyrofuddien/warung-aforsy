@@ -96,6 +96,20 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
                   Kelola User
                 </Link>
 
+                <Link href="/admin/monitor" className="admin-sidebar__item">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    style={{ width: '18px', height: '18px' }}
+                  >
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                  </svg>
+                  Monitor
+                </Link>
+
                 <div className="divider" style={{ margin: 'var(--space-4) 0' }}></div>
 
                 <form action={handleAdminLogout} style={{ padding: '0 var(--space-5)' }}>

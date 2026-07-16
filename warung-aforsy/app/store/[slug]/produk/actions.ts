@@ -2,6 +2,7 @@
 
 import db from '@/lib/db';
 import { getStoreSession, hashPIN } from '@/lib/auth';
+import { logActivity } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
 
 function getSlug(storeId: number): string {
@@ -29,6 +30,8 @@ export async function toggleStockAction(storeId: number, productId: number, curr
     const slug = getSlug(storeId);
     revalidatePath(`/store/${slug}`);
     revalidatePath(`/store/${slug}/produk`);
+
+    logActivity({ storeId, personId: session.personId, action: 'toggle_stock', entityType: 'product', entityId: productId, details: { newStatus: newStockStatus } });
 
     return { success: true };
   } catch (error: unknown) {
@@ -58,6 +61,8 @@ export async function addProductAction(
       INSERT INTO products (store_id, category_id, name, price, cost_price, barcode, in_stock)
       VALUES (?, ?, ?, ?, ?, ?, 1)
     `).run(storeId, categoryId, name, price, costPrice || 0, barcode || '');
+
+    logActivity({ storeId, personId: session.personId, action: 'create_product', entityType: 'product', entityId: undefined, details: { name, price, barcode } });
 
     const slug = getSlug(storeId);
     revalidatePath(`/store/${slug}`);
@@ -94,6 +99,8 @@ export async function editProductAction(
       WHERE id = ? AND store_id = ?
     `).run(name, price, costPrice || 0, barcode || '', categoryId, productId, storeId);
 
+    logActivity({ storeId, personId: session.personId, action: 'update_product', entityType: 'product', entityId: productId, details: { name, price, barcode } });
+
     const slug = getSlug(storeId);
     revalidatePath(`/store/${slug}`);
     revalidatePath(`/store/${slug}/produk`);
@@ -113,6 +120,8 @@ export async function deleteProductAction(storeId: number, productId: number) {
     }
 
     db.prepare('DELETE FROM products WHERE id = ? AND store_id = ?').run(productId, storeId);
+
+    logActivity({ storeId, personId: session.personId, action: 'delete_product', entityType: 'product', entityId: productId });
 
     const slug = getSlug(storeId);
     revalidatePath(`/store/${slug}`);
@@ -143,6 +152,8 @@ export async function addStaffAction(storeId: number, name: string, pin: string,
       INSERT INTO persons (store_id, name, pin_hash, is_owner)
       VALUES (?, ?, ?, ?)
     `).run(storeId, name, pinHash, isOwner ? 1 : 0);
+
+    logActivity({ storeId, personId: session.personId, action: 'create_staff', entityType: 'person', details: { name, isOwner } });
 
     const slug = getSlug(storeId);
     revalidatePath(`/store/${slug}/produk`);
@@ -191,6 +202,8 @@ export async function deleteStaffAction(storeId: number, staffId: number) {
 
     db.prepare('DELETE FROM persons WHERE id = ? AND store_id = ?').run(staffId, storeId);
 
+    logActivity({ storeId, personId: session.personId, action: 'delete_staff', entityType: 'person', entityId: staffId });
+
     const slug = getSlug(storeId);
     revalidatePath(`/store/${slug}/produk`);
     return { success: true };
@@ -216,6 +229,8 @@ export async function addCategoryAction(storeId: number, name: string) {
 
     db.prepare('INSERT INTO categories (store_id, name) VALUES (?, ?)').run(storeId, name.trim());
 
+    logActivity({ storeId, personId: session.personId, action: 'create_category', entityType: 'category', details: { name: name.trim() } });
+
     const slug = getSlug(storeId);
     revalidatePath(`/store/${slug}/produk`);
     return { success: true };
@@ -234,6 +249,8 @@ export async function deleteCategoryAction(storeId: number, categoryId: number) 
 
     db.prepare('UPDATE products SET category_id = NULL WHERE category_id = ? AND store_id = ?').run(categoryId, storeId);
     db.prepare('DELETE FROM categories WHERE id = ? AND store_id = ?').run(categoryId, storeId);
+
+    logActivity({ storeId, personId: session.personId, action: 'delete_category', entityType: 'category', entityId: categoryId });
 
     const slug = getSlug(storeId);
     revalidatePath(`/store/${slug}/produk`);
@@ -490,6 +507,9 @@ export async function importCsvAction(
     revalidatePath(`/store/${slug}/produk`);
 
     console.log(`[CSV] Import done for store ${storeId}: ${imported} new, ${replaced} replaced, ${skipped} skipped`);
+
+    logActivity({ storeId, personId: session.personId, action: 'csv_import', entityType: 'product', details: { imported, replaced, skipped } });
+
     return { success: true, imported, replaced, skipped };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Gagal import CSV.';

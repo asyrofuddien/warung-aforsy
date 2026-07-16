@@ -66,6 +66,16 @@ export default function AdminMobileNav() {
           <span>User</span>
         </Link>
 
+        <Link
+          href="/admin/monitor"
+          className={`admin-mobile-nav__link ${isActive('/admin/monitor') ? 'admin-mobile-nav__link--active' : ''}`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+          <span>Monitor</span>
+        </Link>
+
         <form action={adminLogoutAction}>
           <button
             type="submit"

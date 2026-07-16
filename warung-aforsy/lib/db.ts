@@ -99,6 +99,17 @@ db.exec(`
     FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE,
     UNIQUE(store_id, period)
   );
+  CREATE TABLE IF NOT EXISTS activity_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id INTEGER,
+    person_id INTEGER,
+    action TEXT NOT NULL,
+    entity_type TEXT,
+    entity_id INTEGER,
+    details TEXT,
+    timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE SET NULL
+  );
 `);
 
 // Migration: add member_id to transactions if missing (existing DBs)

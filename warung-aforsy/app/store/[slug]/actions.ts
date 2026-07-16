@@ -2,6 +2,7 @@
 
 import db from '@/lib/db';
 import { getStoreSession } from '@/lib/auth';
+import { logActivity } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
 
 function getSlug(storeId: number): string {
@@ -66,6 +67,7 @@ export async function upsertMemberAction(storeId: number, phone: string, name: s
     ).run(storeId, trimmedPhone, trimmedName);
 
     const member = { id: result.lastInsertRowid as number, phone: trimmedPhone, name: trimmedName };
+    logActivity({ storeId, personId: session.personId, action: 'create_member', entityType: 'member', entityId: member.id, details: { phone: trimmedPhone, name: trimmedName } });
     return { success: true, member };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Gagal menyimpan member.';
@@ -176,6 +178,8 @@ export async function updateMemberAction(storeId: number, memberId: number, name
 
     db.prepare('UPDATE members SET name = ?, phone = ? WHERE id = ? AND store_id = ?').run(trimmedName, trimmedPhone, memberId, storeId);
 
+    logActivity({ storeId, personId: session.personId, action: 'update_member', entityType: 'member', entityId: memberId, details: { name: trimmedName, phone: trimmedPhone } });
+
     const slug = getSlug(storeId);
     revalidatePath(`/store/${slug}/member`);
     return { success: true };
@@ -195,6 +199,8 @@ export async function deleteMemberAction(storeId: number, memberId: number) {
     // Unlink transactions before deleting
     db.prepare('UPDATE transactions SET member_id = NULL WHERE member_id = ? AND store_id = ?').run(memberId, storeId);
     db.prepare('DELETE FROM members WHERE id = ? AND store_id = ?').run(memberId, storeId);
+
+    logActivity({ storeId, personId: session.personId, action: 'delete_member', entityType: 'member', entityId: memberId });
 
     const slug = getSlug(storeId);
     revalidatePath(`/store/${slug}/member`);
@@ -343,6 +349,15 @@ export async function createTransactionAction(
     });
 
     const result = transactionRunner();
+
+    logActivity({
+      storeId,
+      personId: session.personId,
+      action: 'create_transaction',
+      entityType: 'transaction',
+      entityId: result.transactionId as number,
+      details: { total: result.total, paymentMethod, itemCount: items.length, memberId: memberId ?? null },
+    });
 
     const storeRow = db.prepare('SELECT slug FROM stores WHERE id = ?').get(storeId) as { slug: string };
     revalidatePath(`/store/${storeRow.slug}/riwayat`);
