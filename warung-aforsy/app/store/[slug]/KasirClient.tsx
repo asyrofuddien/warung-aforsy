@@ -260,11 +260,11 @@ export default function KasirClient({ storeId, storeName, products, categories }
           snap.pay(response.snapToken, {
             onSuccess: function () {
               toast.success('Pembayaran berhasil!');
-              setReceipt(response.data!);
+              setReceipt({ ...response.data!, midtransStatus: 'settlement' });
             },
             onPending: function () {
               toast.info('Pembayaran sedang diproses...');
-              setReceipt(response.data!);
+              setReceipt({ ...response.data!, midtransStatus: 'pending' });
             },
             onError: function () {
               setError('Pembayaran gagal. Silakan coba lagi.');
