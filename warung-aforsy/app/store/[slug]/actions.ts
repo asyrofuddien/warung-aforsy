@@ -4,7 +4,7 @@ import db from '@/lib/db';
 import { getStoreSession } from '@/lib/auth';
 import { logActivity } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
-import { getMidtransSnap, generateOrderId, MIDTRANS_ENABLED_PAYMENTS } from '@/lib/midtrans';
+import { getMidtransSnap, generateOrderId, MIDTRANS_ENABLED_PAYMENTS, updateSnapDisplayName } from '@/lib/midtrans';
 
 function getSlug(storeId: number): string {
   const row = db.prepare('SELECT slug FROM stores WHERE id = ?').get(storeId) as { slug: string } | undefined;
@@ -535,7 +535,11 @@ export async function createMidtransTransactionAction(
 
     const result = transactionRunner();
 
-    // 5. Create Midtrans Snap transaction
+    // 5. Update Snap display name to show this store's name
+    const storeRow = db.prepare('SELECT slug, name FROM stores WHERE id = ?').get(storeId) as { slug: string; name: string };
+    await updateSnapDisplayName(storeRow.name);
+
+    // 6. Create Midtrans Snap transaction
     const baseUrl = process.env.NEXT_PUBLIC_BASE_DOMAIN
       ? `https://${process.env.NEXT_PUBLIC_BASE_DOMAIN}`
       : 'http://localhost:3000';
@@ -556,7 +560,7 @@ export async function createMidtransTransactionAction(
           })()
         : undefined,
       callbacks: {
-        finish: `${baseUrl}/store/${getSlug(storeId)}`,
+        finish: `${baseUrl}/store/${storeRow.slug}`,
       },
     });
 
@@ -570,7 +574,6 @@ export async function createMidtransTransactionAction(
       response: { transactionId: result.transactionId, total: result.total, orderId: result.orderId },
     });
 
-    const storeRow = db.prepare('SELECT slug FROM stores WHERE id = ?').get(storeId) as { slug: string };
     revalidatePath(`/store/${storeRow.slug}/riwayat`);
 
     return {
