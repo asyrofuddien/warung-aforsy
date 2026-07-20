@@ -17,20 +17,31 @@
 
 :root {
   /* --- Color Tokens (§3) --- */
-  --color-paper: #FAF6EE;         /* App background — warm off-white */
-  --color-ink: #1E1B16;           /* Primary text, high contrast on paper */
-  --color-muted-ink: #756F62;     /* Timestamps, hints, secondary labels */
-  --color-warung-green: #0F7A5C;  /* Primary actions, "paid," in-stock */
-  --color-warung-green-dark: #0B5943; /* Pressed/active state for green */
-  --color-marigold: #E8A33D;      /* Out-of-stock, pending, edited flags */
-  --color-signal-red: #C6402F;    /* Errors, delete, failed payment */
-  --color-line: #DCD4C2;          /* Dividers, card borders, input outlines */
+  --color-paper: #FAF6EE;
+  /* App background — warm off-white */
+  --color-ink: #1E1B16;
+  /* Primary text, high contrast on paper */
+  --color-muted-ink: #756F62;
+  /* Timestamps, hints, secondary labels */
+  --color-warung-green: #0F7A5C;
+  /* Primary actions, "paid," in-stock */
+  --color-warung-green-dark: #0B5943;
+  /* Pressed/active state for green */
+  --color-marigold: #E8A33D;
+  /* Out-of-stock, pending, edited flags */
+  --color-signal-red: #C6402F;
+  /* Errors, delete, failed payment */
+  --color-line: #DCD4C2;
+  /* Dividers, card borders, input outlines */
 
   /* Derived / UI colors */
   --color-white: #FFFFFF;
-  --color-stock-habis-bg: #F5E6E3;  /* Subtle red-tinted background for habis pill */
-  --color-stock-habis-text: #9E3A2B; /* Dark red text for habis pill */
-  --color-overlay: rgba(30, 27, 22, 0.5); /* Modal overlay */
+  --color-stock-habis-bg: #F5E6E3;
+  /* Subtle red-tinted background for habis pill */
+  --color-stock-habis-text: #9E3A2B;
+  /* Dark red text for habis pill */
+  --color-overlay: rgba(30, 27, 22, 0.5);
+  /* Modal overlay */
 
   /* --- Typography Tokens (§4) --- */
   --font-body: var(--font-plus-jakarta-sans, 'Plus Jakarta Sans'), sans-serif;
@@ -204,7 +215,8 @@ a:hover {
 .layout-main {
   flex: 1;
   padding: var(--space-4);
-  padding-bottom: calc(var(--space-7) + 80px); /* Room for sticky footer */
+  padding-bottom: calc(var(--space-7) + 80px);
+  /* Room for sticky footer */
 }
 
 /* Top zone: store name + search/scan (§5) */
@@ -249,7 +261,8 @@ a:hover {
 
 /* With bottom nav present, sticky footer sits above it */
 .layout-sticky-footer--above-nav {
-  bottom: 64px; /* Height of bottom nav */
+  bottom: 64px;
+  /* Height of bottom nav */
 }
 
 /* Bottom navigation bar — 3 tabs max (§5) */
@@ -294,8 +307,8 @@ a:hover {
   line-height: 1;
   cursor: pointer;
   transition: background-color var(--transition-fast),
-              border-color var(--transition-fast),
-              transform var(--transition-fast);
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
   user-select: none;
   -webkit-user-select: none;
   text-decoration: none;
@@ -396,7 +409,7 @@ a:hover {
   min-height: 28px;
   cursor: pointer;
   transition: background-color var(--transition-fast),
-              color var(--transition-fast);
+    color var(--transition-fast);
   user-select: none;
   -webkit-user-select: none;
 }
@@ -446,8 +459,8 @@ a:hover {
   font-weight: 600;
   cursor: pointer;
   transition: background-color var(--transition-fast),
-              color var(--transition-fast),
-              box-shadow var(--transition-fast);
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
   user-select: none;
   -webkit-user-select: none;
 }
@@ -482,7 +495,7 @@ a:hover {
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: box-shadow var(--transition-fast),
-              border-color var(--transition-fast);
+    border-color var(--transition-fast);
   user-select: none;
   -webkit-user-select: none;
 }
@@ -500,7 +513,8 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  min-width: 0; /* Allow text truncation */
+  min-width: 0;
+  /* Allow text truncation */
 }
 
 .product-card__name {
@@ -588,11 +602,9 @@ a:hover {
   left: 0;
   right: 0;
   height: 12px;
-  background-image: radial-gradient(
-    circle at 8px 0,
-    transparent 8px,
-    var(--color-white) 8px
-  );
+  background-image: radial-gradient(circle at 8px 0,
+      transparent 8px,
+      var(--color-white) 8px);
   background-size: 16px 12px;
   background-position: -8px top;
   background-repeat: repeat-x;
@@ -671,7 +683,7 @@ a:hover {
   border: 2px solid var(--color-line);
   background-color: transparent;
   transition: background-color var(--transition-fast),
-              border-color var(--transition-fast);
+    border-color var(--transition-fast);
 }
 
 .pin-dot--filled {
@@ -806,7 +818,7 @@ a:hover {
   font-weight: 400;
   color: var(--color-ink);
   transition: border-color var(--transition-fast),
-              box-shadow var(--transition-fast);
+    box-shadow var(--transition-fast);
   outline: none;
 }
 
@@ -820,7 +832,8 @@ a:hover {
 }
 
 .input--search {
-  padding-left: var(--space-7); /* Room for search icon */
+  padding-left: var(--space-7);
+  /* Room for search icon */
 }
 
 /* ---------- Badge ---------- */
@@ -929,200 +942,580 @@ a:hover {
    ========================================================================== */
 
 /* Gap */
-.gap-1 { gap: var(--space-1); }
-.gap-2 { gap: var(--space-2); }
-.gap-3 { gap: var(--space-3); }
-.gap-4 { gap: var(--space-4); }
-.gap-5 { gap: var(--space-5); }
-.gap-6 { gap: var(--space-6); }
-.gap-7 { gap: var(--space-7); }
+.gap-1 {
+  gap: var(--space-1);
+}
+
+.gap-2 {
+  gap: var(--space-2);
+}
+
+.gap-3 {
+  gap: var(--space-3);
+}
+
+.gap-4 {
+  gap: var(--space-4);
+}
+
+.gap-5 {
+  gap: var(--space-5);
+}
+
+.gap-6 {
+  gap: var(--space-6);
+}
+
+.gap-7 {
+  gap: var(--space-7);
+}
 
 /* Padding — all sides */
-.p-1 { padding: var(--space-1); }
-.p-2 { padding: var(--space-2); }
-.p-3 { padding: var(--space-3); }
-.p-4 { padding: var(--space-4); }
-.p-5 { padding: var(--space-5); }
-.p-6 { padding: var(--space-6); }
-.p-7 { padding: var(--space-7); }
+.p-1 {
+  padding: var(--space-1);
+}
+
+.p-2 {
+  padding: var(--space-2);
+}
+
+.p-3 {
+  padding: var(--space-3);
+}
+
+.p-4 {
+  padding: var(--space-4);
+}
+
+.p-5 {
+  padding: var(--space-5);
+}
+
+.p-6 {
+  padding: var(--space-6);
+}
+
+.p-7 {
+  padding: var(--space-7);
+}
 
 /* Padding — horizontal */
-.px-1 { padding-left: var(--space-1); padding-right: var(--space-1); }
-.px-2 { padding-left: var(--space-2); padding-right: var(--space-2); }
-.px-3 { padding-left: var(--space-3); padding-right: var(--space-3); }
-.px-4 { padding-left: var(--space-4); padding-right: var(--space-4); }
-.px-5 { padding-left: var(--space-5); padding-right: var(--space-5); }
-.px-6 { padding-left: var(--space-6); padding-right: var(--space-6); }
-.px-7 { padding-left: var(--space-7); padding-right: var(--space-7); }
+.px-1 {
+  padding-left: var(--space-1);
+  padding-right: var(--space-1);
+}
+
+.px-2 {
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.px-3 {
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+}
+
+.px-4 {
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+
+.px-5 {
+  padding-left: var(--space-5);
+  padding-right: var(--space-5);
+}
+
+.px-6 {
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
+}
+
+.px-7 {
+  padding-left: var(--space-7);
+  padding-right: var(--space-7);
+}
 
 /* Padding — vertical */
-.py-1 { padding-top: var(--space-1); padding-bottom: var(--space-1); }
-.py-2 { padding-top: var(--space-2); padding-bottom: var(--space-2); }
-.py-3 { padding-top: var(--space-3); padding-bottom: var(--space-3); }
-.py-4 { padding-top: var(--space-4); padding-bottom: var(--space-4); }
-.py-5 { padding-top: var(--space-5); padding-bottom: var(--space-5); }
-.py-6 { padding-top: var(--space-6); padding-bottom: var(--space-6); }
-.py-7 { padding-top: var(--space-7); padding-bottom: var(--space-7); }
+.py-1 {
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
+}
+
+.py-2 {
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.py-3 {
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.py-4 {
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-4);
+}
+
+.py-5 {
+  padding-top: var(--space-5);
+  padding-bottom: var(--space-5);
+}
+
+.py-6 {
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-6);
+}
+
+.py-7 {
+  padding-top: var(--space-7);
+  padding-bottom: var(--space-7);
+}
 
 /* Margin — all sides */
-.m-1 { margin: var(--space-1); }
-.m-2 { margin: var(--space-2); }
-.m-3 { margin: var(--space-3); }
-.m-4 { margin: var(--space-4); }
-.m-5 { margin: var(--space-5); }
-.m-6 { margin: var(--space-6); }
-.m-7 { margin: var(--space-7); }
+.m-1 {
+  margin: var(--space-1);
+}
+
+.m-2 {
+  margin: var(--space-2);
+}
+
+.m-3 {
+  margin: var(--space-3);
+}
+
+.m-4 {
+  margin: var(--space-4);
+}
+
+.m-5 {
+  margin: var(--space-5);
+}
+
+.m-6 {
+  margin: var(--space-6);
+}
+
+.m-7 {
+  margin: var(--space-7);
+}
 
 /* Margin — horizontal */
-.mx-1 { margin-left: var(--space-1); margin-right: var(--space-1); }
-.mx-2 { margin-left: var(--space-2); margin-right: var(--space-2); }
-.mx-3 { margin-left: var(--space-3); margin-right: var(--space-3); }
-.mx-4 { margin-left: var(--space-4); margin-right: var(--space-4); }
-.mx-5 { margin-left: var(--space-5); margin-right: var(--space-5); }
-.mx-6 { margin-left: var(--space-6); margin-right: var(--space-6); }
-.mx-7 { margin-left: var(--space-7); margin-right: var(--space-7); }
+.mx-1 {
+  margin-left: var(--space-1);
+  margin-right: var(--space-1);
+}
+
+.mx-2 {
+  margin-left: var(--space-2);
+  margin-right: var(--space-2);
+}
+
+.mx-3 {
+  margin-left: var(--space-3);
+  margin-right: var(--space-3);
+}
+
+.mx-4 {
+  margin-left: var(--space-4);
+  margin-right: var(--space-4);
+}
+
+.mx-5 {
+  margin-left: var(--space-5);
+  margin-right: var(--space-5);
+}
+
+.mx-6 {
+  margin-left: var(--space-6);
+  margin-right: var(--space-6);
+}
+
+.mx-7 {
+  margin-left: var(--space-7);
+  margin-right: var(--space-7);
+}
 
 /* Margin — vertical */
-.my-1 { margin-top: var(--space-1); margin-bottom: var(--space-1); }
-.my-2 { margin-top: var(--space-2); margin-bottom: var(--space-2); }
-.my-3 { margin-top: var(--space-3); margin-bottom: var(--space-3); }
-.my-4 { margin-top: var(--space-4); margin-bottom: var(--space-4); }
-.my-5 { margin-top: var(--space-5); margin-bottom: var(--space-5); }
-.my-6 { margin-top: var(--space-6); margin-bottom: var(--space-6); }
-.my-7 { margin-top: var(--space-7); margin-bottom: var(--space-7); }
+.my-1 {
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-1);
+}
+
+.my-2 {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.my-3 {
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.my-4 {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.my-5 {
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.my-6 {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+.my-7 {
+  margin-top: var(--space-7);
+  margin-bottom: var(--space-7);
+}
 
 /* Margin — auto centering */
-.mx-auto { margin-left: auto; margin-right: auto; }
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
 
 /* ==========================================================================
    7. DISPLAY & FLEX UTILITIES
    ========================================================================== */
 
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.flex-row { flex-direction: row; }
-.flex-wrap { flex-wrap: wrap; }
-.flex-1 { flex: 1; }
-.flex-shrink-0 { flex-shrink: 0; }
-.items-center { align-items: center; }
-.items-start { align-items: flex-start; }
-.items-end { align-items: flex-end; }
-.justify-center { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.justify-end { justify-content: flex-end; }
-.self-center { align-self: center; }
-.self-end { align-self: flex-end; }
+.flex {
+  display: flex;
+}
 
-.grid { display: grid; }
-.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
-.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.flex-col {
+  flex-direction: column;
+}
 
-.hidden { display: none; }
-.block { display: block; }
-.inline-flex { display: inline-flex; }
+.flex-row {
+  flex-direction: row;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+.items-end {
+  align-items: flex-end;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-end {
+  justify-content: flex-end;
+}
+
+.self-center {
+  align-self: center;
+}
+
+.self-end {
+  align-self: flex-end;
+}
+
+.grid {
+  display: grid;
+}
+
+.grid-cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.hidden {
+  display: none;
+}
+
+.block {
+  display: block;
+}
+
+.inline-flex {
+  display: inline-flex;
+}
 
 /* ==========================================================================
    8. TEXT UTILITIES
    ========================================================================== */
 
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-right { text-align: right; }
-.text-ink { color: var(--color-ink); }
-.text-muted { color: var(--color-muted-ink); }
-.text-green { color: var(--color-warung-green); }
-.text-red { color: var(--color-signal-red); }
-.text-marigold { color: var(--color-marigold); }
-.text-white { color: var(--color-white); }
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-ink {
+  color: var(--color-ink);
+}
+
+.text-muted {
+  color: var(--color-muted-ink);
+}
+
+.text-green {
+  color: var(--color-warung-green);
+}
+
+.text-red {
+  color: var(--color-signal-red);
+}
+
+.text-marigold {
+  color: var(--color-marigold);
+}
+
+.text-white {
+  color: var(--color-white);
+}
+
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.whitespace-nowrap { white-space: nowrap; }
+
+.whitespace-nowrap {
+  white-space: nowrap;
+}
 
 /* ==========================================================================
    9. SIZING UTILITIES
    ========================================================================== */
 
-.w-full { width: 100%; }
-.h-full { height: 100%; }
-.min-h-screen { min-height: 100vh; }
-.min-h-full { min-height: 100%; }
+.w-full {
+  width: 100%;
+}
+
+.h-full {
+  height: 100%;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.min-h-full {
+  min-height: 100%;
+}
 
 /* ==========================================================================
    10. POSITION UTILITIES
    ========================================================================== */
 
-.relative { position: relative; }
-.absolute { position: absolute; }
-.sticky { position: sticky; }
-.fixed { position: fixed; }
-.inset-0 { inset: 0; }
-.top-0 { top: 0; }
-.bottom-0 { bottom: 0; }
-.left-0 { left: 0; }
-.right-0 { right: 0; }
-.z-10 { z-index: 10; }
-.z-20 { z-index: 20; }
-.z-30 { z-index: 30; }
-.z-40 { z-index: 40; }
-.z-50 { z-index: 50; }
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.sticky {
+  position: sticky;
+}
+
+.fixed {
+  position: fixed;
+}
+
+.inset-0 {
+  inset: 0;
+}
+
+.top-0 {
+  top: 0;
+}
+
+.bottom-0 {
+  bottom: 0;
+}
+
+.left-0 {
+  left: 0;
+}
+
+.right-0 {
+  right: 0;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+.z-20 {
+  z-index: 20;
+}
+
+.z-30 {
+  z-index: 30;
+}
+
+.z-40 {
+  z-index: 40;
+}
+
+.z-50 {
+  z-index: 50;
+}
 
 /* ==========================================================================
    11. BORDER & ROUNDED UTILITIES
    ========================================================================== */
 
-.border { border: 1px solid var(--color-line); }
-.border-t { border-top: 1px solid var(--color-line); }
-.border-b { border-bottom: 1px solid var(--color-line); }
-.rounded-sm { border-radius: var(--radius-sm); }
-.rounded-md { border-radius: var(--radius-md); }
-.rounded-lg { border-radius: var(--radius-lg); }
-.rounded-full { border-radius: var(--radius-full); }
+.border {
+  border: 1px solid var(--color-line);
+}
+
+.border-t {
+  border-top: 1px solid var(--color-line);
+}
+
+.border-b {
+  border-bottom: 1px solid var(--color-line);
+}
+
+.rounded-sm {
+  border-radius: var(--radius-sm);
+}
+
+.rounded-md {
+  border-radius: var(--radius-md);
+}
+
+.rounded-lg {
+  border-radius: var(--radius-lg);
+}
+
+.rounded-full {
+  border-radius: var(--radius-full);
+}
 
 /* ==========================================================================
    12. BACKGROUND UTILITIES
    ========================================================================== */
 
-.bg-paper { background-color: var(--color-paper); }
-.bg-white { background-color: var(--color-white); }
-.bg-green { background-color: var(--color-warung-green); }
-.bg-red { background-color: var(--color-signal-red); }
-.bg-marigold { background-color: var(--color-marigold); }
+.bg-paper {
+  background-color: var(--color-paper);
+}
+
+.bg-white {
+  background-color: var(--color-white);
+}
+
+.bg-green {
+  background-color: var(--color-warung-green);
+}
+
+.bg-red {
+  background-color: var(--color-signal-red);
+}
+
+.bg-marigold {
+  background-color: var(--color-marigold);
+}
 
 /* ==========================================================================
    13. SHADOW UTILITIES
    ========================================================================== */
 
-.shadow-card { box-shadow: var(--shadow-card); }
-.shadow-elevated { box-shadow: var(--shadow-elevated); }
-.shadow-sticky { box-shadow: var(--shadow-sticky); }
-.shadow-none { box-shadow: none; }
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+.shadow-elevated {
+  box-shadow: var(--shadow-elevated);
+}
+
+.shadow-sticky {
+  box-shadow: var(--shadow-sticky);
+}
+
+.shadow-none {
+  box-shadow: none;
+}
 
 /* ==========================================================================
    14. OVERFLOW UTILITIES
    ========================================================================== */
 
-.overflow-hidden { overflow: hidden; }
-.overflow-y-auto { overflow-y: auto; }
-.overflow-x-hidden { overflow-x: hidden; }
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+.overflow-x-hidden {
+  overflow-x: hidden;
+}
 
 /* ==========================================================================
    15. CURSOR UTILITIES
    ========================================================================== */
 
-.cursor-pointer { cursor: pointer; }
-.cursor-not-allowed { cursor: not-allowed; }
-.select-none { user-select: none; -webkit-user-select: none; }
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-not-allowed {
+  cursor: not-allowed;
+}
+
+.select-none {
+  user-select: none;
+  -webkit-user-select: none;
+}
 
 /* ==========================================================================
    16. OPACITY UTILITIES
    ========================================================================== */
 
-.opacity-50 { opacity: 0.5; }
-.opacity-0 { opacity: 0; }
-.opacity-100 { opacity: 1; }
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.opacity-0 {
+  opacity: 0;
+}
+
+.opacity-100 {
+  opacity: 1;
+}
 
 /* ==========================================================================
    17. ANIMATION & MOTION (§10)
@@ -1134,6 +1527,7 @@ a:hover {
     opacity: 0;
     transform: translateY(24px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1146,8 +1540,13 @@ a:hover {
 
 /* Overlay fade in */
 @keyframes overlay-enter {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .overlay-enter {
@@ -1159,6 +1558,7 @@ a:hover {
   from {
     transform: translateY(100%);
   }
+
   to {
     transform: translateY(0);
   }
@@ -1170,8 +1570,13 @@ a:hover {
 
 /* Fade in generic */
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .fade-in {
@@ -1180,12 +1585,20 @@ a:hover {
 
 /* Barcode scanner scan line */
 @keyframes scanLine {
-  0%, 100% { top: 8px; }
-  50% { top: calc(100% - 10px); }
+
+  0%,
+  100% {
+    top: 8px;
+  }
+
+  50% {
+    top: calc(100% - 10px);
+  }
 }
 
 /* Respect prefers-reduced-motion (§10) */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -1232,8 +1645,6 @@ a:hover {
 
 @media (min-width: 768px) {
   .admin-layout {
-    display: grid;
-    grid-template-columns: 260px 1fr;
     min-height: 100vh;
   }
 
@@ -1276,7 +1687,7 @@ a:hover {
     font-weight: 500;
     text-decoration: none;
     transition: background-color var(--transition-fast),
-                color var(--transition-fast);
+      color var(--transition-fast);
     cursor: pointer;
     border: none;
     background: none;
@@ -1299,6 +1710,8 @@ a:hover {
     padding: var(--space-6);
     overflow-y: auto;
     margin-left: 260px;
+    min-width: calc(100vw - 260px);
+    box-sizing: border-box;
   }
 
   .admin-table {
@@ -1478,11 +1891,11 @@ a:hover {
   }
 
   .admin-main {
-    padding: var(--space-3);
-    padding-top: var(--space-4);
+    padding: var(--space-6);
     overflow-y: auto;
-    overflow-x: hidden;
-    min-width: 0;
+    margin-left: 260px;
+    width: calc(100vw - 260px);
+    max-width: calc(100vw - 260px);
   }
 
   /* Stack stat cards on mobile */
@@ -1512,11 +1925,25 @@ a:hover {
   flex-direction: column;
 }
 
-.stack--1 { gap: var(--space-1); }
-.stack--2 { gap: var(--space-2); }
-.stack--3 { gap: var(--space-3); }
-.stack--4 { gap: var(--space-4); }
-.stack--5 { gap: var(--space-5); }
+.stack--1 {
+  gap: var(--space-1);
+}
+
+.stack--2 {
+  gap: var(--space-2);
+}
+
+.stack--3 {
+  gap: var(--space-3);
+}
+
+.stack--4 {
+  gap: var(--space-4);
+}
+
+.stack--5 {
+  gap: var(--space-5);
+}
 
 /* Inline layout — horizontal with gaps */
 .inline {
@@ -1524,7 +1951,18 @@ a:hover {
   align-items: center;
 }
 
-.inline--1 { gap: var(--space-1); }
-.inline--2 { gap: var(--space-2); }
-.inline--3 { gap: var(--space-3); }
-.inline--4 { gap: var(--space-4); }
+.inline--1 {
+  gap: var(--space-1);
+}
+
+.inline--2 {
+  gap: var(--space-2);
+}
+
+.inline--3 {
+  gap: var(--space-3);
+}
+
+.inline--4 {
+  gap: var(--space-4);
+}
