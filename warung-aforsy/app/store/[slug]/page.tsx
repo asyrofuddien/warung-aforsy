@@ -60,7 +60,6 @@ export default async function StorePage({ params }: StorePageProps) {
     <KasirClient
       storeId={storeId}
       storeName={store.name}
-      storeQrUrl={store.qr_image_url}
       products={products}
       categories={categories}
     />

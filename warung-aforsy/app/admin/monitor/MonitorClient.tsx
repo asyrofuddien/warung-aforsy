@@ -102,7 +102,7 @@ const ACTION_COLORS: Record<string, string> = {
   delete_category: 'var(--color-signal-red)',
 };
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 10;
 
 function JsonBlock({ label, data }: { label: string; data: string }) {
   const [copied, setCopied] = useState(false);

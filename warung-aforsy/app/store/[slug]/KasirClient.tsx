@@ -7,8 +7,7 @@ import { toast } from 'sonner';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import ReceiptDocument from '@/components/ReceiptDocument';
 import { downloadReceiptPDF, downloadReceiptImage, shareReceiptWhatsApp } from '@/lib/receipt';
-import { createTransactionAction, findMemberAction, upsertMemberAction } from './actions';
-import { toDirectImageUrl } from '@/lib/gdrive';
+import { createTransactionAction, createMidtransTransactionAction, findMemberAction, upsertMemberAction } from './actions';
 
 interface Product {
   id: number;
@@ -49,18 +48,17 @@ interface ReceiptData {
 interface KasirClientProps {
   storeId: number;
   storeName: string;
-  storeQrUrl: string | null;
   products: Product[];
   categories: Category[];
 }
 
-export default function KasirClient({ storeId, storeName, storeQrUrl, products, categories }: KasirClientProps) {
+export default function KasirClient({ storeId, storeName, products, categories }: KasirClientProps) {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<number | 'all'>('all');
   const [cart, setCart] = useState<{ [productId: number]: number }>({});
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qr'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online'>('cash');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -247,18 +245,58 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
       quantity,
     }));
 
-    const response = await createTransactionAction(storeId, itemsInput, paymentMethod, activeMemberId);
+    if (paymentMethod === 'online') {
+      // Midtrans Snap payment
+      const response = await createMidtransTransactionAction(storeId, itemsInput, activeMemberId);
 
-    if (response.success && response.data) {
-      await new Promise((r) => setTimeout(r, 1000));
-      toast.success('Pembayaran berhasil!');
-      setReceipt(response.data as ReceiptData);
-      setIsCheckoutOpen(false);
-      setIsCartOpen(false);
+      if (response.success && response.snapToken && response.data) {
+        setIsCheckoutOpen(false);
+        setIsCartOpen(false);
+
+        // Open Midtrans Snap popup
+        const snap = window.snap;
+        if (snap) {
+          snap.pay(response.snapToken, {
+            onSuccess: function () {
+              toast.success('Pembayaran berhasil!');
+              setReceipt(response.data!);
+            },
+            onPending: function () {
+              toast.info('Pembayaran sedang diproses...');
+              setReceipt(response.data!);
+            },
+            onError: function () {
+              setError('Pembayaran gagal. Silakan coba lagi.');
+              setLoading(false);
+            },
+            onClose: function () {
+              setError('Pembayaran dibatalkan.');
+              setLoading(false);
+            },
+          });
+        } else {
+          setError('Midtrans Snap tidak dimuat. Silakan refresh halaman.');
+          setLoading(false);
+        }
+      } else {
+        setError(response.error || 'Gagal memproses transaksi.');
+        setLoading(false);
+      }
     } else {
-      setError(response.error || 'Gagal memproses transaksi.');
+      // Cash payment
+      const response = await createTransactionAction(storeId, itemsInput, paymentMethod, activeMemberId);
+
+      if (response.success && response.data) {
+        await new Promise((r) => setTimeout(r, 1000));
+        toast.success('Pembayaran berhasil!');
+        setReceipt(response.data as ReceiptData);
+        setIsCheckoutOpen(false);
+        setIsCartOpen(false);
+      } else {
+        setError(response.error || 'Gagal memproses transaksi.');
+      }
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Barcode scanner: detect exact barcode match on each keystroke
@@ -699,8 +737,8 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
               </button>
               
               <button
-                onClick={() => setPaymentMethod('qr')}
-                className={`payment-tab ${paymentMethod === 'qr' ? 'payment-tab--active' : ''}`}
+                onClick={() => setPaymentMethod('online')}
+                className={`payment-tab ${paymentMethod === 'online' ? 'payment-tab--active' : ''}`}
               >
                 <svg
                   className="payment-tab__icon"
@@ -710,13 +748,10 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
                   stroke="currentColor"
                   strokeWidth="2"
                 >
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <rect x="7" y="7" width="3" height="3" />
-                  <rect x="14" y="7" width="3" height="3" />
-                  <rect x="7" y="14" width="3" height="3" />
-                  <rect x="14" y="14" width="3" height="3" />
+                  <rect x="2" y="5" width="20" height="14" rx="2" />
+                  <line x1="2" y1="10" x2="22" y2="10" />
                 </svg>
-                QRIS
+                Online
               </button>
             </div>
 
@@ -727,47 +762,12 @@ export default function KasirClient({ storeId, storeName, storeQrUrl, products, 
               </div>
             </div>
 
-            {/* QRIS Code display (§5.3) */}
-            {paymentMethod === 'qr' && (
+            {/* Online payment info */}
+            {paymentMethod === 'online' && (
               <div className="flex flex-col items-center p-4 border rounded-md bg-white my-4">
-                <span className="text-meta mb-2">Scan QR Code Di Bawah Ini:</span>
-                {storeQrUrl ? (
-                  <div
-                    style={{
-                      width: '200px',
-                      height: '200px',
-                      backgroundColor: 'var(--color-line)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={toDirectImageUrl(storeQrUrl)}
-                      alt={`QRIS ${storeName}`}
-                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          const fallback = document.createElement('div');
-                          fallback.className = 'text-center p-3';
-                          fallback.innerHTML = `<div style="font-size:24px;font-weight:bold;color:var(--color-warung-green)">QRIS</div><div class="text-meta mt-2" style="font-size:10px">${storeName}</div><div class="mt-1" style="width:80px;height:80px;border:4px solid black;margin:0 auto"></div>`;
-                          parent.appendChild(fallback);
-                        }
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="text-meta text-center py-6">QR Code Toko belum diunggah.</div>
-                )}
-                <span className="text-meta mt-3 text-center" style={{ fontSize: '11px' }}>
-                  Konfirmasi pembayaran setelah dana masuk di handphone Anda.
+                <span className="text-meta mb-2">Pembayaran Online</span>
+                <span className="text-meta text-center" style={{ fontSize: '11px' }}>
+                  Pilih metode pembayaran: QRIS, VA Bank, atau E-Wallet
                 </span>
               </div>
             )}

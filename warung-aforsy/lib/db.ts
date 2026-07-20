@@ -112,18 +112,58 @@ db.exec(`
   );
 `);
 
+// Helper: check if a column exists on a table
+function hasColumn(table: string, column: string): boolean {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  return cols.some((c) => c.name === column);
+}
+
 // Migration: add member_id to transactions if missing (existing DBs)
-try {
-  db.prepare('SELECT member_id FROM transactions LIMIT 1').get();
-} catch {
+if (!hasColumn('transactions', 'member_id')) {
   db.exec('ALTER TABLE transactions ADD COLUMN member_id INTEGER REFERENCES members(id) ON DELETE SET NULL');
 }
 
 // Migration: add collected_at_sales to commission_records for partial payment tracking
-try {
-  db.prepare('SELECT collected_at_sales FROM commission_records LIMIT 1').get();
-} catch {
+if (!hasColumn('commission_records', 'collected_at_sales')) {
   db.exec('ALTER TABLE commission_records ADD COLUMN collected_at_sales INTEGER DEFAULT NULL');
+}
+
+// Migration: expand payment_method CHECK to include 'online'
+try {
+  const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='transactions'").get() as { sql: string } | undefined;
+  if (tableInfo && !tableInfo.sql.includes("'online'")) {
+    db.exec(`
+      CREATE TABLE transactions_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_id INTEGER NOT NULL,
+        person_id INTEGER NOT NULL,
+        member_id INTEGER,
+        timestamp TEXT NOT NULL,
+        payment_method TEXT NOT NULL CHECK(payment_method IN ('cash', 'qr', 'online')),
+        total INTEGER NOT NULL,
+        midtrans_order_id TEXT,
+        midtrans_status TEXT DEFAULT NULL,
+        FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE,
+        FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE SET NULL,
+        FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL
+      );
+      INSERT INTO transactions_new (id, store_id, person_id, member_id, timestamp, payment_method, total)
+        SELECT id, store_id, person_id, member_id, timestamp, payment_method, total FROM transactions;
+      DROP TABLE transactions;
+      ALTER TABLE transactions_new RENAME TO transactions;
+    `);
+  }
+} catch {
+  // Table already has 'online' in CHECK or fresh DB
+}
+
+// Migration: add Midtrans columns to transactions (after CHECK migration so they don't conflict)
+if (!hasColumn('transactions', 'midtrans_order_id')) {
+  db.exec('ALTER TABLE transactions ADD COLUMN midtrans_order_id TEXT');
+}
+
+if (!hasColumn('transactions', 'midtrans_status')) {
+  db.exec('ALTER TABLE transactions ADD COLUMN midtrans_status TEXT DEFAULT NULL');
 }
 
 export default db;

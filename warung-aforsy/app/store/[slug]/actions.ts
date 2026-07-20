@@ -4,6 +4,7 @@ import db from '@/lib/db';
 import { getStoreSession } from '@/lib/auth';
 import { logActivity } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
+import { getMidtransSnap, generateOrderId, MIDTRANS_ENABLED_PAYMENTS } from '@/lib/midtrans';
 
 function getSlug(storeId: number): string {
   const row = db.prepare('SELECT slug FROM stores WHERE id = ?').get(storeId) as { slug: string } | undefined;
@@ -386,6 +387,209 @@ export async function createTransactionAction(
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Terjadi kesalahan saat memproses transaksi.';
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+export async function createMidtransTransactionAction(
+  storeId: number,
+  items: CartItemInput[],
+  memberId?: number | null
+) {
+  try {
+    const session = await getStoreSession();
+    if (!session || session.storeId !== storeId) {
+      return { success: false, error: 'Sesi tidak valid.' };
+    }
+
+    if (items.length === 0) {
+      return { success: false, error: 'Keranjang belanja kosong.' };
+    }
+
+    const snap = getMidtransSnap();
+
+    // Execute inside an SQLite transaction
+    const transactionRunner = db.transaction(() => {
+      // 1. Calculate total and check products
+      let total = 0;
+      const verifiedItems: {
+        productId: number;
+        name: string;
+        price: number;
+        costPrice: number;
+        quantity: number;
+      }[] = [];
+
+      for (const item of items) {
+        const product = db.prepare('SELECT id, name, price, cost_price, in_stock FROM products WHERE id = ? AND store_id = ?').get(item.productId, storeId) as {
+          id: number;
+          name: string;
+          price: number;
+          cost_price: number;
+          in_stock: number;
+        } | undefined;
+
+        if (!product) {
+          throw new Error(`Produk dengan ID ${item.productId} tidak ditemukan.`);
+        }
+        if (product.in_stock === 0) {
+          throw new Error(`Produk "${product.name}" sedang habis.`);
+        }
+
+        total += product.price * item.quantity;
+        verifiedItems.push({
+          productId: product.id,
+          name: product.name,
+          price: product.price,
+          costPrice: product.cost_price,
+          quantity: item.quantity,
+        });
+      }
+
+      // 2. Insert transaction row with 'online' payment method
+      const timestamp = new Date().toISOString();
+      const insertTxResult = db.prepare(`
+        INSERT INTO transactions (store_id, person_id, member_id, timestamp, payment_method, total, midtrans_status)
+        VALUES (?, ?, ?, ?, 'online', ?, 'pending')
+      `).run(storeId, session.personId, memberId ?? null, timestamp, total);
+
+      const transactionId = insertTxResult.lastInsertRowid;
+      const orderId = generateOrderId(storeId, transactionId);
+
+      // Update transaction with midtrans_order_id
+      db.prepare('UPDATE transactions SET midtrans_order_id = ? WHERE id = ?').run(orderId, transactionId);
+
+      // 3. Insert transaction items (snapshots)
+      const insertItem = db.prepare(`
+        INSERT INTO transaction_items (transaction_id, product_id, name_snapshot, price_snapshot, cost_price_snapshot, quantity)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `);
+
+      for (const vi of verifiedItems) {
+        insertItem.run(
+          transactionId,
+          vi.productId,
+          vi.name,
+          vi.price,
+          vi.costPrice,
+          vi.quantity
+        );
+      }
+
+      // 4. Update or insert monthly commission record
+      const period = timestamp.substring(0, 7); // Format: YYYY-MM
+
+      // Get store commission rate
+      const storeInfo = db.prepare('SELECT commission_rate FROM stores WHERE id = ?').get(storeId) as { commission_rate: number };
+      const rate = storeInfo.commission_rate;
+
+      // Check if commission record exists for this period
+      const existingCommission = db.prepare(`
+        SELECT id, total_sales, collected, collected_at_sales, amount_owed
+        FROM commission_records
+        WHERE store_id = ? AND period = ?
+      `).get(storeId, period) as { id: number; total_sales: number; collected: number; collected_at_sales: number | null; amount_owed: number } | undefined;
+
+      if (existingCommission) {
+        const newTotalSales = existingCommission.total_sales + total;
+        let newAmountOwed: number;
+        let newCollected = existingCommission.collected;
+        const newCollectedAtSales = existingCommission.collected_at_sales;
+
+        if (existingCommission.collected === 1 && existingCommission.collected_at_sales !== null && newTotalSales > existingCommission.collected_at_sales) {
+          newCollected = 0;
+          const unpaidSales = newTotalSales - existingCommission.collected_at_sales;
+          newAmountOwed = Math.round((unpaidSales * rate) / 100);
+        } else if (existingCommission.collected === 0 || existingCommission.collected_at_sales === null) {
+          newAmountOwed = Math.round((newTotalSales * rate) / 100);
+        } else {
+          newAmountOwed = existingCommission.amount_owed;
+        }
+
+        db.prepare(`
+          UPDATE commission_records
+          SET total_sales = ?, amount_owed = ?, collected = ?, collected_at_sales = ?
+          WHERE id = ?
+        `).run(newTotalSales, newAmountOwed, newCollected, newCollectedAtSales, existingCommission.id);
+      } else {
+        const amountOwed = Math.round((total * rate) / 100);
+        db.prepare(`
+          INSERT INTO commission_records (store_id, period, total_sales, rate_applied, amount_owed, collected)
+          VALUES (?, ?, ?, ?, ?, 0)
+        `).run(storeId, period, total, rate, amountOwed);
+      }
+
+      return {
+        transactionId,
+        orderId,
+        timestamp,
+        total,
+        cashierName: session.personName,
+        memberId: memberId ?? null,
+        items: verifiedItems,
+      };
+    });
+
+    const result = transactionRunner();
+
+    // 5. Create Midtrans Snap transaction
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_DOMAIN
+      ? `https://${process.env.NEXT_PUBLIC_BASE_DOMAIN}`
+      : 'http://localhost:3000';
+
+    const snapResponse = await snap.createTransaction({
+      transaction_details: {
+        order_id: result.orderId,
+        gross_amount: result.total,
+      },
+      enabled_payments: MIDTRANS_ENABLED_PAYMENTS,
+      customer_details: result.memberId
+        ? (() => {
+            const member = db.prepare('SELECT phone, name FROM members WHERE id = ?').get(result.memberId) as { phone: string; name: string } | undefined;
+            return {
+              phone: member?.phone || '',
+              first_name: member?.name || '',
+            };
+          })()
+        : undefined,
+      callbacks: {
+        finish: `${baseUrl}/store/${getSlug(storeId)}`,
+      },
+    });
+
+    logActivity({
+      storeId,
+      personId: session.personId,
+      action: 'create_midtrans_transaction',
+      entityType: 'transaction',
+      entityId: result.transactionId as number,
+      request: { itemCount: items.length, memberId: memberId ?? null, orderId: result.orderId },
+      response: { transactionId: result.transactionId, total: result.total, orderId: result.orderId },
+    });
+
+    const storeRow = db.prepare('SELECT slug FROM stores WHERE id = ?').get(storeId) as { slug: string };
+    revalidatePath(`/store/${storeRow.slug}/riwayat`);
+
+    return {
+      success: true,
+      snapToken: snapResponse.token,
+      orderId: result.orderId,
+      data: {
+        transactionId: result.transactionId,
+        timestamp: result.timestamp,
+        total: result.total,
+        cashierName: result.cashierName,
+        paymentMethod: 'online',
+        memberId: result.memberId,
+        items: result.items,
+      },
+    };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Terjadi kesalahan saat memproses transaksi.';
+    console.error('[MIDTRANS] Create transaction error:', error);
     return {
       success: false,
       error: message,

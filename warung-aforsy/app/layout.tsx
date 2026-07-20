@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import { Toaster } from "sonner";
 import SWRegistration from "@/components/SWRegistration";
 import "./globals.css";
@@ -68,6 +69,11 @@ export default function RootLayout({
               fontWeight: 500,
             },
           }}
+        />
+        <Script
+          src="https://app.sandbox.midtrans.com/snap/snap.js"
+          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || ''}
+          strategy="lazyOnload"
         />
       </body>
     </html>
