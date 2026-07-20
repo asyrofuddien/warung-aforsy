@@ -418,11 +418,11 @@ export default function RiwayatClient({
                   +Rp {(profitByTxId[tx.id] || 0).toLocaleString('id-ID')}
                 </span>
                 <span
-                  className={`badge ${tx.payment_method === 'online' && tx.midtrans_status !== 'settlement' ? 'badge--marigold' : tx.payment_method !== 'cash' ? 'badge--green' : 'badge--marigold'} mt-1`}
+                  className={`badge ${tx.payment_method === 'online' && tx.midtrans_status !== 'settlement' && tx.midtrans_status !== 'capture' ? 'badge--marigold' : tx.payment_method !== 'cash' ? 'badge--green' : 'badge--marigold'} mt-1`}
                   style={{ fontSize: '10px' }}
                 >
                   {tx.payment_method === 'online'
-                    ? (tx.midtrans_status === 'settlement' || tx.midtrans_status === 'capture' ? 'Online' : tx.midtrans_status === 'pending' ? 'Pending' : tx.midtrans_status === 'cancel' ? 'Dibatalkan' : tx.midtrans_status === 'expire' ? 'Expired' : 'Gagal')
+                    ? (tx.midtrans_status === 'settlement' || tx.midtrans_status === 'capture' ? 'Online' : tx.midtrans_status === 'pending' ? 'Menunggu' : tx.midtrans_status === 'cancel' ? 'Dibatalkan' : tx.midtrans_status === 'expire' ? 'Kadaluarsa' : 'Gagal')
                     : tx.payment_method === 'qr' ? 'QRIS' : 'Tunai'}
                 </span>
               </div>

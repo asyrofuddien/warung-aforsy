@@ -45,9 +45,9 @@ export default function ReceiptDocument({
   items,
   total,
 }: ReceiptDocumentProps) {
-  const paymentLabel = paymentMethod === "qr" ? "QRIS (Gopay)" : paymentMethod === "online"
-    ? (midtransStatus === "settlement" || midtransStatus === "capture" ? "Online (Midtrans)" : midtransStatus === "pending" ? "Online (Pending)" : `Online (${midtransStatus})`)
-    : "Tunai (Cash)";
+  const paymentLabel = paymentMethod === "qr" ? "QRIS" : paymentMethod === "online"
+    ? (midtransStatus === "settlement" || midtransStatus === "capture" ? "Online (Berhasil)" : midtransStatus === "pending" ? "Online (Menunggu Pembayaran)" : `Online (${midtransStatus})`)
+    : "Tunai";
 
   return (
     <div
