@@ -4,7 +4,7 @@ import db from '@/lib/db';
 import { getStoreSession } from '@/lib/auth';
 import { logActivity } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
-import { getMidtransSnap, generateOrderId, MIDTRANS_ENABLED_PAYMENTS, updateSnapDisplayName } from '@/lib/midtrans';
+import { getMidtransSnap, generateOrderId, MIDTRANS_ENABLED_PAYMENTS } from '@/lib/midtrans';
 
 function getSlug(storeId: number): string {
   const row = db.prepare('SELECT slug FROM stores WHERE id = ?').get(storeId) as { slug: string } | undefined;
@@ -537,12 +537,6 @@ export async function createMidtransTransactionAction(
 
     // 5. Create Midtrans Snap transaction
     const storeRow = db.prepare('SELECT slug, name FROM stores WHERE id = ?').get(storeId) as { slug: string; name: string };
-
-    // Update Snap display name to show this store's name (production only — sandbox doesn't support this API)
-    if (process.env.NODE_ENV === 'production') {
-      await updateSnapDisplayName(storeRow.name);
-    }
-
     const baseUrl = process.env.NEXT_PUBLIC_BASE_DOMAIN
       ? `https://${process.env.NEXT_PUBLIC_BASE_DOMAIN}`
       : 'http://localhost:3000';

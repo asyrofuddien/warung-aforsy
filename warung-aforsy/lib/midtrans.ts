@@ -50,30 +50,3 @@ export function verifyMidtransSignature(params: {
   const expectedSignature = crypto.createHash('sha512').update(input).digest('hex');
   return expectedSignature === params.signature_key;
 }
-
-export async function updateSnapDisplayName(storeName: string): Promise<void> {
-  const serverKey = process.env.MIDTRANS_SERVER_KEY;
-  if (!serverKey) throw new Error('MIDTRANS_SERVER_KEY not set');
-
-  const baseUrl = process.env.NODE_ENV === 'production'
-    ? 'https://app.midtrans.com'
-    : 'https://app.sandbox.midtrans.com';
-
-  const auth = Buffer.from(serverKey + ':').toString('base64');
-
-  const res = await fetch(`${baseUrl}/snap/v3/merchant-preferences`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      Authorization: `Basic ${auth}`,
-    },
-    body: JSON.stringify({ display_name: storeName }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    console.error('[MIDTRANS] Failed to update display_name:', err);
-    throw new Error(`Failed to update Snap display name: ${res.status}`);
-  }
-}
