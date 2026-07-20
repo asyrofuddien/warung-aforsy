@@ -535,11 +535,14 @@ export async function createMidtransTransactionAction(
 
     const result = transactionRunner();
 
-    // 5. Update Snap display name to show this store's name
+    // 5. Create Midtrans Snap transaction
     const storeRow = db.prepare('SELECT slug, name FROM stores WHERE id = ?').get(storeId) as { slug: string; name: string };
-    await updateSnapDisplayName(storeRow.name);
 
-    // 6. Create Midtrans Snap transaction
+    // Update Snap display name to show this store's name (production only — sandbox doesn't support this API)
+    if (process.env.NODE_ENV === 'production') {
+      await updateSnapDisplayName(storeRow.name);
+    }
+
     const baseUrl = process.env.NEXT_PUBLIC_BASE_DOMAIN
       ? `https://${process.env.NEXT_PUBLIC_BASE_DOMAIN}`
       : 'http://localhost:3000';
