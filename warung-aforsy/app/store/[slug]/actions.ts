@@ -479,49 +479,6 @@ export async function createMidtransTransactionAction(
         );
       }
 
-      // 4. Update or insert monthly commission record
-      const period = timestamp.substring(0, 7); // Format: YYYY-MM
-
-      // Get store commission rate
-      const storeInfo = db.prepare('SELECT commission_rate FROM stores WHERE id = ?').get(storeId) as { commission_rate: number };
-      const rate = storeInfo.commission_rate;
-
-      // Check if commission record exists for this period
-      const existingCommission = db.prepare(`
-        SELECT id, total_sales, collected, collected_at_sales, amount_owed
-        FROM commission_records
-        WHERE store_id = ? AND period = ?
-      `).get(storeId, period) as { id: number; total_sales: number; collected: number; collected_at_sales: number | null; amount_owed: number } | undefined;
-
-      if (existingCommission) {
-        const newTotalSales = existingCommission.total_sales + total;
-        let newAmountOwed: number;
-        let newCollected = existingCommission.collected;
-        const newCollectedAtSales = existingCommission.collected_at_sales;
-
-        if (existingCommission.collected === 1 && existingCommission.collected_at_sales !== null && newTotalSales > existingCommission.collected_at_sales) {
-          newCollected = 0;
-          const unpaidSales = newTotalSales - existingCommission.collected_at_sales;
-          newAmountOwed = Math.round((unpaidSales * rate) / 100);
-        } else if (existingCommission.collected === 0 || existingCommission.collected_at_sales === null) {
-          newAmountOwed = Math.round((newTotalSales * rate) / 100);
-        } else {
-          newAmountOwed = existingCommission.amount_owed;
-        }
-
-        db.prepare(`
-          UPDATE commission_records
-          SET total_sales = ?, amount_owed = ?, collected = ?, collected_at_sales = ?
-          WHERE id = ?
-        `).run(newTotalSales, newAmountOwed, newCollected, newCollectedAtSales, existingCommission.id);
-      } else {
-        const amountOwed = Math.round((total * rate) / 100);
-        db.prepare(`
-          INSERT INTO commission_records (store_id, period, total_sales, rate_applied, amount_owed, collected)
-          VALUES (?, ?, ?, ?, ?, 0)
-        `).run(storeId, period, total, rate, amountOwed);
-      }
-
       return {
         transactionId,
         orderId,
