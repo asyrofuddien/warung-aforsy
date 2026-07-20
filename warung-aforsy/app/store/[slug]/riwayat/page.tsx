@@ -6,13 +6,14 @@ import RiwayatClient from './RiwayatClient';
 interface TransactionRow {
   id: number;
   timestamp: string;
-  payment_method: 'cash' | 'qr';
+  payment_method: 'cash' | 'qr' | 'online';
   total: number;
   cashier_name: string;
   cashier_id: number;
   member_id: number | null;
   member_name: string | null;
   member_phone: string | null;
+  midtrans_status: string | null;
 }
 
 interface TransactionItemRow {
@@ -56,7 +57,7 @@ export default async function RiwayatPage({ params }: RiwayatPageProps) {
   // 2. Fetch transactions list
   const transactions = db.prepare(`
     SELECT t.id, t.timestamp, t.payment_method, t.total, p.name as cashier_name, p.id as cashier_id,
-           t.member_id, m.name as member_name, m.phone as member_phone
+           t.member_id, m.name as member_name, m.phone as member_phone, t.midtrans_status
     FROM transactions t
     LEFT JOIN persons p ON t.person_id = p.id
     LEFT JOIN members m ON t.member_id = m.id

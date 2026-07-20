@@ -583,6 +583,7 @@ export async function createMidtransTransactionAction(
         cashierName: result.cashierName,
         paymentMethod: 'online',
         memberId: result.memberId,
+        midtransStatus: 'pending',
         items: result.items,
       },
     };

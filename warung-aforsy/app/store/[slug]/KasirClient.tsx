@@ -37,6 +37,7 @@ interface ReceiptData {
   cashierName: string;
   paymentMethod: string;
   memberId: number | null;
+  midtransStatus?: string | null;
   items: {
     productId: number;
     name: string;
@@ -815,6 +816,7 @@ export default function KasirClient({ storeId, storeName, products, categories }
               timestamp={receipt.timestamp}
               cashierName={receipt.cashierName}
               paymentMethod={receipt.paymentMethod}
+              midtransStatus={receipt.midtransStatus}
               items={receipt.items}
               total={receipt.total}
             />

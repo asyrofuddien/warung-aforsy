@@ -10,6 +10,7 @@ interface ReceiptDocumentProps {
   timestamp: string;
   cashierName: string;
   paymentMethod: string;
+  midtransStatus?: string | null;
   items: ReceiptItem[];
   total: number;
 }
@@ -40,10 +41,13 @@ export default function ReceiptDocument({
   timestamp,
   cashierName,
   paymentMethod,
+  midtransStatus,
   items,
   total,
 }: ReceiptDocumentProps) {
-  const paymentLabel = paymentMethod === "qr" ? "QRIS (Gopay)" : "Tunai (Cash)";
+  const paymentLabel = paymentMethod === "qr" ? "QRIS (Gopay)" : paymentMethod === "online"
+    ? (midtransStatus === "settlement" || midtransStatus === "capture" ? "Online (Midtrans)" : midtransStatus === "pending" ? "Online (Pending)" : `Online (${midtransStatus})`)
+    : "Tunai (Cash)";
 
   return (
     <div
