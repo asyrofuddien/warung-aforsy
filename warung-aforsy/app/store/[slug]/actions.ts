@@ -537,9 +537,8 @@ export async function createMidtransTransactionAction(
 
     // 5. Create Midtrans Snap transaction
     const storeRow = db.prepare('SELECT slug, name FROM stores WHERE id = ?').get(storeId) as { slug: string; name: string };
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_DOMAIN
-      ? `https://${process.env.NEXT_PUBLIC_BASE_DOMAIN}`
-      : 'http://localhost:3000';
+    const domain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+    const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
 
     const snapResponse = await snap.createTransaction({
       transaction_details: {

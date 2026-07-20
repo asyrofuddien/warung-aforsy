@@ -14,7 +14,7 @@ export function getMidtransSnap(): InstanceType<typeof midtransClient.Snap> {
   }
 
   snapInstance = new midtransClient.Snap({
-    isProduction: process.env.NODE_ENV === 'production',
+    isProduction: process.env.MIDTRANS_PRODUCTION === 'true',
     serverKey,
     clientKey,
   });
